@@ -50,8 +50,9 @@ public class AgreementConfig: NSObject {
      * https://domain.com/{language_code}/path
      *
      * Special cases:
-     * - URLs containing "sherab.org" are returned as-is without modification to preserve
-     *   their original structure and prevent navigation issues
+     * - URLs on our own domains ("webuddhistacademy.com", or the former "sherab.org") are
+     *   returned as-is without modification to preserve their original structure and
+     *   prevent navigation issues
      * - If the current language is not in the supported languages list, the URL is returned as-is
      * - If the URL structure doesn't match the expected format, the URL is returned as-is
      *
@@ -59,9 +60,9 @@ public class AgreementConfig: NSObject {
      * @return The processed URL string with language code inserted if applicable
      */
     private func completePath(url: String) -> String {
-        // Skip language insertion for sherab.org domain
-        // This prevents URL transformation issues with the sherab.org privacy policy
-        if url.contains("sherab.org") {
+        // Skip language insertion for our own domains
+        // This prevents URL transformation issues with our privacy policy
+        if url.contains("webuddhistacademy.com") || url.contains("sherab.org") {
             return url
         }
         

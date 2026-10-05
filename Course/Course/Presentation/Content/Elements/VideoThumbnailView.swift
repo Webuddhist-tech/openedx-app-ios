@@ -93,8 +93,8 @@ struct VideoThumbnailView: View {
         isCurrentVideo: Bool = false
     ) {
         self.thumbnailData = thumbnailData
-        self.thumbnailImage = thumbnailImage
-        self.isGeneratingThumbnail = isGeneratingThumbnail
+        _thumbnailImage = State(initialValue: thumbnailImage)
+        _isGeneratingThumbnail = State(initialValue: isGeneratingThumbnail)
         self.thumbnailWidth = thumbnailWidth
         self.thumbnailHeight = thumbnailHeight
         self.isCurrentVideo = isCurrentVideo

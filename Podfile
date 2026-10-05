@@ -104,3 +104,13 @@ abstract_target "App" do
   end
   
 end
+
+# Xcode 26+ rejects the old deployment targets (8.0/11.0) that the SwiftGen and
+# SwiftLint pods declare, so align every pod target with the app's minimum.
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+    end
+  end
+end

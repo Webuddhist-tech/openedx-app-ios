@@ -32,7 +32,6 @@ public struct StartupView: View {
                     .frame(maxWidth: 250, maxHeight: 120)
                     .padding(.top, isHorizontal ? 20 : 40)
                     .padding(.bottom, isHorizontal ? 0 : 20)
-                    .colorMultiply(Theme.Colors.accentColor)
                     .accessibilityIdentifier("logo_image")
                     .frame(maxWidth: .infinity)
                 

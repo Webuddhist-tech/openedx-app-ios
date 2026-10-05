@@ -75,14 +75,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
 
         Theme.Fonts.registerFonts()
-        window = UIWindow(frame: UIScreen.main.bounds)
-        window?.rootViewController = RouteController()
-        window?.makeKeyAndVisible()
-        window?.tintColor = Theme.UIColors.accentColor
-        
-        // Apply initial theme
-        applyTheme()
-        
+        // The window is created by SceneDelegate via makeMainWindow(for:)
+
         // Listen for theme changes
         NotificationCenter.default.addObserver(
             self,
@@ -106,6 +100,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         )
 
         return true
+    }
+
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        let configuration = UISceneConfiguration(name: "Default", sessionRole: connectingSceneSession.role)
+        configuration.delegateClass = SceneDelegate.self
+        return configuration
+    }
+
+    func makeMainWindow(for windowScene: UIWindowScene) -> UIWindow {
+        let window = UIWindow(windowScene: windowScene)
+        window.rootViewController = RouteController()
+        window.tintColor = Theme.UIColors.accentColor
+        window.makeKeyAndVisible()
+        self.window = window
+
+        // Apply initial theme
+        applyTheme()
+        return window
     }
 
     func application(
