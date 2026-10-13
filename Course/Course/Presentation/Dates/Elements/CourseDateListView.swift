@@ -15,9 +15,9 @@ struct CourseDateListView: View {
     @Binding var coordinate: CGFloat
     @Binding var collapsed: Bool
     @Binding var viewHeight: CGFloat
-    var courseDates: CourseDates
+    var courseDates: CourseDates?
     let courseID: String
-    
+
     var body: some View {
         GeometryReader { proxy in
             VStack {
@@ -28,27 +28,29 @@ struct CourseDateListView: View {
                         viewHeight: $viewHeight
                     )
                     VStack(alignment: .leading, spacing: 0) {
-                        
+
                         @State var status: SyncStatus = .offline
-                        
-                        CalendarSyncStatusView(status: status, router: viewModel.router)
-                            .padding(.bottom, 16)
-                            .task {
-                                status = await viewModel.syncStatus()
+
+                        if let courseDates {
+                            CalendarSyncStatusView(status: status, router: viewModel.router)
+                                .padding(.bottom, 16)
+                                .task {
+                                    status = await viewModel.syncStatus()
+                                }
+
+                            if !courseDates.hasEnded {
+                                DatesStatusInfoView(
+                                    datesBannerInfo: courseDates.datesBannerInfo,
+                                    courseID: courseID,
+                                    courseDatesViewModel: viewModel,
+                                    screen: .courseDates
+                                )
+                                .padding(.bottom, 16)
                             }
-                        
-                        if !courseDates.hasEnded {
-                            DatesStatusInfoView(
-                                datesBannerInfo: courseDates.datesBannerInfo,
-                                courseID: courseID,
-                                courseDatesViewModel: viewModel,
-                                screen: .courseDates
-                            )
-                            .padding(.bottom, 16)
                         }
-                        
+
                         ForEach(Array(viewModel.sortedStatuses), id: \.self) { status in
-                            let courseDateBlockDict = courseDates.statusDatesBlocks[status]!
+                            let courseDateBlockDict = courseDates?.statusDatesBlocks[status] ?? [:]
                             if status == .completed {
                                 CompletedBlocks(
                                     isExpanded: $isExpanded,
@@ -64,17 +66,29 @@ struct CourseDateListView: View {
                                     TimeLineView(status: status)
                                         .padding(.bottom, 15)
                                     VStack(alignment: .leading) {
-                                        ForEach(courseDateBlockDict.keys.sorted(), id: \.self) { date in
-                                            let blocks = courseDateBlockDict[date]!
-                                            let block = blocks[0]
-                                            Text(block.formattedDate)
-                                                .font(Theme.Fonts.labelMedium)
-                                                .foregroundStyle(Theme.Colors.textPrimary)
-                                            BlockStatusView(
-                                                viewModel: viewModel,
-                                                block: block,
-                                                blocks: blocks
+                                        ForEach(
+                                            DatesEntry.entries(
+                                                dates: courseDateBlockDict,
+                                                sessions: viewModel.sessionsByStatus[status] ?? []
                                             )
+                                        ) { entry in
+                                            switch entry {
+                                            case let .dates(_, blocks):
+                                                let block = blocks[0]
+                                                Text(block.formattedDate)
+                                                    .font(Theme.Fonts.labelMedium)
+                                                    .foregroundStyle(Theme.Colors.textPrimary)
+                                                BlockStatusView(
+                                                    viewModel: viewModel,
+                                                    block: block,
+                                                    blocks: blocks
+                                                )
+                                            case let .session(session):
+                                                Text(session.formattedDate)
+                                                    .font(Theme.Fonts.labelMedium)
+                                                    .foregroundStyle(Theme.Colors.textPrimary)
+                                                CourseSessionView(session: session)
+                                            }
                                         }
                                     }
                                 }
@@ -90,5 +104,35 @@ struct CourseDateListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+    }
+}
+
+/// One row group in a Dates section: the course dates that share a date, or a session.
+enum DatesEntry: Identifiable {
+    case dates(Date, [CourseDateBlock])
+    case session(CourseSessionBlock)
+
+    var id: String {
+        switch self {
+        case let .dates(date, _): return "dates-\(date.timeIntervalSince1970)"
+        case let .session(session): return "session-\(session.id)"
+        }
+    }
+
+    var sortDate: Date {
+        switch self {
+        case let .dates(date, _): return date
+        case let .session(session): return session.localDate() ?? .distantFuture
+        }
+    }
+
+    /// Course dates and sessions of one section in date order. Ties keep course dates first
+    /// and sessions in the order the API returned them.
+    static func entries(dates: [Date: [CourseDateBlock]], sessions: [CourseSessionBlock]) -> [DatesEntry] {
+        let all = dates.keys.sorted().map { DatesEntry.dates($0, dates[$0] ?? []) }
+            + sessions.map { DatesEntry.session($0) }
+        return all.enumerated()
+            .sorted { ($0.element.sortDate, $0.offset) < ($1.element.sortDate, $1.offset) }
+            .map(\.element)
     }
 }

@@ -5258,6 +5258,22 @@ open class CourseInteractorProtocolMock: CourseInteractorProtocol, Mock {
 		return __value
     }
 
+    open func getCourseSchedule(courseID: String) throws -> [CourseSessionBlock] {
+        addInvocation(.m_getCourseSchedule__courseID_courseID(Parameter<String>.value(`courseID`)))
+		let perform = methodPerformValue(.m_getCourseSchedule__courseID_courseID(Parameter<String>.value(`courseID`))) as? (String) -> Void
+		perform?(`courseID`)
+		var __value: [CourseSessionBlock]
+		do {
+		    __value = try methodReturnValue(.m_getCourseSchedule__courseID_courseID(Parameter<String>.value(`courseID`))).casted()
+		} catch MockError.notStubed {
+			onFatalFailure("Stub return value not specified for getCourseSchedule(courseID: String). Use given")
+			Failure("Stub return value not specified for getCourseSchedule(courseID: String). Use given")
+		} catch {
+		    throw error
+		}
+		return __value
+    }
+
     open func getCourseDeadlineInfo(courseID: String) throws -> CourseDateBanner {
         addInvocation(.m_getCourseDeadlineInfo__courseID_courseID(Parameter<String>.value(`courseID`)))
 		let perform = methodPerformValue(.m_getCourseDeadlineInfo__courseID_courseID(Parameter<String>.value(`courseID`))) as? (String) -> Void
@@ -5381,6 +5397,7 @@ open class CourseInteractorProtocolMock: CourseInteractorProtocol, Mock {
         case m_resumeBlock__courseID_courseID(Parameter<String>)
         case m_getSubtitles__url_urlselectedLanguage_selectedLanguage(Parameter<String>, Parameter<String>)
         case m_getCourseDates__courseID_courseID(Parameter<String>)
+        case m_getCourseSchedule__courseID_courseID(Parameter<String>)
         case m_getCourseDeadlineInfo__courseID_courseID(Parameter<String>)
         case m_shiftDueDates__courseID_courseID(Parameter<String>)
         case m_updateLocalVideoProgress__blockID_blockIDprogress_progress(Parameter<String>, Parameter<Double>)
@@ -5450,6 +5467,11 @@ open class CourseInteractorProtocolMock: CourseInteractorProtocol, Mock {
 				results.append(Matcher.ParameterComparisonResult(Parameter.compare(lhs: lhsCourseid, rhs: rhsCourseid, with: matcher), lhsCourseid, rhsCourseid, "courseID"))
 				return Matcher.ComparisonResult(results)
 
+            case (.m_getCourseSchedule__courseID_courseID(let lhsCourseid), .m_getCourseSchedule__courseID_courseID(let rhsCourseid)):
+				var results: [Matcher.ParameterComparisonResult] = []
+				results.append(Matcher.ParameterComparisonResult(Parameter.compare(lhs: lhsCourseid, rhs: rhsCourseid, with: matcher), lhsCourseid, rhsCourseid, "courseID"))
+				return Matcher.ComparisonResult(results)
+
             case (.m_getCourseDeadlineInfo__courseID_courseID(let lhsCourseid), .m_getCourseDeadlineInfo__courseID_courseID(let rhsCourseid)):
 				var results: [Matcher.ParameterComparisonResult] = []
 				results.append(Matcher.ParameterComparisonResult(Parameter.compare(lhs: lhsCourseid, rhs: rhsCourseid, with: matcher), lhsCourseid, rhsCourseid, "courseID"))
@@ -5507,6 +5529,7 @@ open class CourseInteractorProtocolMock: CourseInteractorProtocol, Mock {
             case let .m_resumeBlock__courseID_courseID(p0): return p0.intValue
             case let .m_getSubtitles__url_urlselectedLanguage_selectedLanguage(p0, p1): return p0.intValue + p1.intValue
             case let .m_getCourseDates__courseID_courseID(p0): return p0.intValue
+            case let .m_getCourseSchedule__courseID_courseID(p0): return p0.intValue
             case let .m_getCourseDeadlineInfo__courseID_courseID(p0): return p0.intValue
             case let .m_shiftDueDates__courseID_courseID(p0): return p0.intValue
             case let .m_updateLocalVideoProgress__blockID_blockIDprogress_progress(p0, p1): return p0.intValue + p1.intValue
@@ -5530,6 +5553,7 @@ open class CourseInteractorProtocolMock: CourseInteractorProtocol, Mock {
             case .m_resumeBlock__courseID_courseID: return ".resumeBlock(courseID:)"
             case .m_getSubtitles__url_urlselectedLanguage_selectedLanguage: return ".getSubtitles(url:selectedLanguage:)"
             case .m_getCourseDates__courseID_courseID: return ".getCourseDates(courseID:)"
+            case .m_getCourseSchedule__courseID_courseID: return ".getCourseSchedule(courseID:)"
             case .m_getCourseDeadlineInfo__courseID_courseID: return ".getCourseDeadlineInfo(courseID:)"
             case .m_shiftDueDates__courseID_courseID: return ".shiftDueDates(courseID:)"
             case .m_updateLocalVideoProgress__blockID_blockIDprogress_progress: return ".updateLocalVideoProgress(blockID:progress:)"
@@ -5580,6 +5604,9 @@ open class CourseInteractorProtocolMock: CourseInteractorProtocol, Mock {
         }
         public static func getCourseDates(courseID: Parameter<String>, willReturn: CourseDates...) -> MethodStub {
             return Given(method: .m_getCourseDates__courseID_courseID(`courseID`), products: willReturn.map({ StubProduct.return($0 as Any) }))
+        }
+        public static func getCourseSchedule(courseID: Parameter<String>, willReturn: [CourseSessionBlock]...) -> MethodStub {
+            return Given(method: .m_getCourseSchedule__courseID_courseID(`courseID`), products: willReturn.map({ StubProduct.return($0 as Any) }))
         }
         public static func getCourseDeadlineInfo(courseID: Parameter<String>, willReturn: CourseDateBanner...) -> MethodStub {
             return Given(method: .m_getCourseDeadlineInfo__courseID_courseID(`courseID`), products: willReturn.map({ StubProduct.return($0 as Any) }))
@@ -5710,10 +5737,20 @@ open class CourseInteractorProtocolMock: CourseInteractorProtocol, Mock {
         public static func getCourseDates(courseID: Parameter<String>, willThrow: Error...) -> MethodStub {
             return Given(method: .m_getCourseDates__courseID_courseID(`courseID`), products: willThrow.map({ StubProduct.throw($0) }))
         }
+        public static func getCourseSchedule(courseID: Parameter<String>, willThrow: Error...) -> MethodStub {
+            return Given(method: .m_getCourseSchedule__courseID_courseID(`courseID`), products: willThrow.map({ StubProduct.throw($0) }))
+        }
         public static func getCourseDates(courseID: Parameter<String>, willProduce: (StubberThrows<CourseDates>) -> Void) -> MethodStub {
             let willThrow: [Error] = []
 			let given: Given = { return Given(method: .m_getCourseDates__courseID_courseID(`courseID`), products: willThrow.map({ StubProduct.throw($0) })) }()
 			let stubber = given.stubThrows(for: (CourseDates).self)
+			willProduce(stubber)
+			return given
+        }
+        public static func getCourseSchedule(courseID: Parameter<String>, willProduce: (StubberThrows<[CourseSessionBlock]>) -> Void) -> MethodStub {
+            let willThrow: [Error] = []
+			let given: Given = { return Given(method: .m_getCourseSchedule__courseID_courseID(`courseID`), products: willThrow.map({ StubProduct.throw($0) })) }()
+			let stubber = given.stubThrows(for: ([CourseSessionBlock]).self)
 			willProduce(stubber)
 			return given
         }
@@ -5783,6 +5820,7 @@ open class CourseInteractorProtocolMock: CourseInteractorProtocol, Mock {
         public static func resumeBlock(courseID: Parameter<String>) -> Verify { return Verify(method: .m_resumeBlock__courseID_courseID(`courseID`))}
         public static func getSubtitles(url: Parameter<String>, selectedLanguage: Parameter<String>) -> Verify { return Verify(method: .m_getSubtitles__url_urlselectedLanguage_selectedLanguage(`url`, `selectedLanguage`))}
         public static func getCourseDates(courseID: Parameter<String>) -> Verify { return Verify(method: .m_getCourseDates__courseID_courseID(`courseID`))}
+        public static func getCourseSchedule(courseID: Parameter<String>) -> Verify { return Verify(method: .m_getCourseSchedule__courseID_courseID(`courseID`))}
         public static func getCourseDeadlineInfo(courseID: Parameter<String>) -> Verify { return Verify(method: .m_getCourseDeadlineInfo__courseID_courseID(`courseID`))}
         public static func shiftDueDates(courseID: Parameter<String>) -> Verify { return Verify(method: .m_shiftDueDates__courseID_courseID(`courseID`))}
         public static func updateLocalVideoProgress(blockID: Parameter<String>, progress: Parameter<Double>) -> Verify { return Verify(method: .m_updateLocalVideoProgress__blockID_blockIDprogress_progress(`blockID`, `progress`))}
@@ -5829,6 +5867,9 @@ open class CourseInteractorProtocolMock: CourseInteractorProtocol, Mock {
         }
         public static func getCourseDates(courseID: Parameter<String>, perform: @escaping (String) -> Void) -> Perform {
             return Perform(method: .m_getCourseDates__courseID_courseID(`courseID`), performs: perform)
+        }
+        public static func getCourseSchedule(courseID: Parameter<String>, perform: @escaping (String) -> Void) -> Perform {
+            return Perform(method: .m_getCourseSchedule__courseID_courseID(`courseID`), performs: perform)
         }
         public static func getCourseDeadlineInfo(courseID: Parameter<String>, perform: @escaping (String) -> Void) -> Perform {
             return Perform(method: .m_getCourseDeadlineInfo__courseID_courseID(`courseID`), performs: perform)

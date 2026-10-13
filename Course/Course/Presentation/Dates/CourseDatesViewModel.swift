@@ -24,6 +24,7 @@ public class CourseDatesViewModel: ObservableObject {
     @Published var isShowProgress = true
     @Published var showError: Bool = false
     @Published var courseDates: CourseDates?
+    @Published var courseSessions: [CourseSessionBlock] = []
     @Published var isOn: Bool = false
     @Published var eventState: EventState?
 
@@ -73,18 +74,46 @@ public class CourseDatesViewModel: ObservableObject {
         let desiredSequence = [
             CompletionStatus.completed,
             CompletionStatus.pastDue,
+            CompletionStatus.past,
             CompletionStatus.today,
             CompletionStatus.thisWeek,
             CompletionStatus.nextWeek,
             CompletionStatus.upcoming
         ]
-        
-        // Filter out keys that don't exist in the dictionary
+
+        // Filter out keys that don't exist in either dictionary
+        let dateStatuses = courseDates?.statusDatesBlocks.keys
+        let sessionStatuses = sessionsByStatus.keys
         let filteredKeys = desiredSequence.filter {
-            courseDates?.statusDatesBlocks.keys.contains($0) ?? false }
+            (dateStatuses?.contains($0) ?? false) || sessionStatuses.contains($0)
+        }
         return filteredKeys
     }
-    
+
+    /// Sessions grouped into the Dates screen sections by their start day. Sessions are
+    /// informational, so they are never `.completed`; past ones go under `.past`.
+    var sessionsByStatus: [CompletionStatus: [CourseSessionBlock]] {
+        let today = Date()
+        return Dictionary(grouping: courseSessions) { $0.status(today: today) }
+    }
+
+    var hasDatesContent: Bool {
+        !(courseDates?.courseDateBlocks.isEmpty ?? true) || !courseSessions.isEmpty
+    }
+
+    /// Loads the section schedule. It is optional: any failure (not enrolled, plugin not
+    /// installed, server or network error) just means no sessions, and it never touches
+    /// the dates, the progress indicator or the error message.
+    @MainActor
+    func getCourseSessions(courseID: String) async {
+        do {
+            courseSessions = try await interactor.getCourseSchedule(courseID: courseID)
+        } catch {
+            debugLog("Course schedule unavailable: \(error.localizedDescription)")
+            courseSessions = []
+        }
+    }
+
     @MainActor
     func getCourseDates(courseID: String) async {
         isShowProgress = true
@@ -186,10 +215,16 @@ extension CourseDatesViewModel {
         Task {
             await getCourseDates(courseID: courseID)
         }
+        Task {
+            await getCourseSessions(courseID: courseID)
+        }
     }
-    
+
     @objc private func handleShiftDueDates(_ notification: Notification) {
         if let courseID = notification.object as? String {
+            Task {
+                await getCourseSessions(courseID: courseID)
+            }
             Task {
                 await getCourseDates(courseID: courseID)
                 await MainActor.run { [weak self] in

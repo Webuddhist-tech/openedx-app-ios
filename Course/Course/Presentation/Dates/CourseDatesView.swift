@@ -45,13 +45,13 @@ public struct CourseDatesView: View {
                             .padding(.top, 200)
                             .padding(.horizontal)
                     }
-                } else if let courseDates = viewModel.courseDates, !courseDates.courseDateBlocks.isEmpty {
+                } else if viewModel.hasDatesContent {
                     CourseDateListView(
                         viewModel: viewModel,
                         coordinate: $coordinate,
                         collapsed: $collapsed,
                         viewHeight: $viewHeight,
-                        courseDates: courseDates,
+                        courseDates: viewModel.courseDates,
                         courseID: courseID
                     )
                     .padding(.top, 10)
@@ -121,6 +121,10 @@ public struct CourseDatesView: View {
         .onFirstAppear {
             Task {
                 await viewModel.getCourseDates(courseID: courseID)
+            }
+            // The schedule is optional and loads on its own, so it never delays the dates.
+            Task {
+                await viewModel.getCourseSessions(courseID: courseID)
             }
         }
         .background(
