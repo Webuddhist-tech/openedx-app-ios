@@ -51,12 +51,12 @@ struct CourseDateListView: View {
                             }
                         }
 
-                        ForEach(Array(viewModel.sortedStatuses), id: \.self) { status in
-                            let courseDateBlockDict = courseDates?.statusDatesBlocks[status] ?? [:]
+                        ForEach(viewModel.sections()) { section in
+                            let status = section.status
                             if status == .completed {
                                 CompletedBlocks(
                                     isExpanded: $isExpanded,
-                                    courseDateBlockDict: courseDateBlockDict,
+                                    courseDateBlockDict: section.dates,
                                     viewModel: viewModel
                                 )
                             } else {
@@ -69,22 +69,33 @@ struct CourseDateListView: View {
                                         .padding(.bottom, 15)
                                     VStack(alignment: .leading) {
                                         ForEach(
-                                            DatesEntry.entries(
-                                                dates: courseDateBlockDict,
-                                                sessions: viewModel.sessionsByStatus[status] ?? []
-                                            )
+                                            DatesEntry.entries(dates: section.dates, sessions: section.sessions)
                                         ) { entry in
                                             switch entry {
-                                            case let .dates(_, blocks):
+                                            case let .dates(date, blocks):
                                                 let block = blocks[0]
-                                                dateHeader(block.formattedDate, status: status)
+                                                dateHeader(
+                                                    DatesHeader.text(
+                                                        for: date,
+                                                        formattedDate: block.formattedDate,
+                                                        status: status,
+                                                        useRelativeDates: block.useRelativeDates
+                                                    )
+                                                )
                                                 BlockStatusView(
                                                     viewModel: viewModel,
                                                     block: block,
                                                     blocks: blocks
                                                 )
                                             case let .session(session):
-                                                dateHeader(session.formattedDate, status: status)
+                                                dateHeader(
+                                                    DatesHeader.text(
+                                                        for: session.localDate(),
+                                                        formattedDate: session.formattedDate,
+                                                        status: status,
+                                                        useRelativeDates: session.useRelativeDates
+                                                    )
+                                                )
                                                 CourseSessionView(session: session)
                                             }
                                         }
@@ -104,14 +115,53 @@ struct CourseDateListView: View {
         }
     }
 
-    /// The date above a group of rows. Hidden when it only repeats the section title,
-    /// e.g. "Today" under the "Today" section with relative dates on.
+    /// The date above a group of rows, or nothing when `DatesHeader.text` returns nil.
     @ViewBuilder
-    private func dateHeader(_ text: String, status: CompletionStatus) -> some View {
-        if text.caseInsensitiveCompare(status.localized) != .orderedSame {
+    private func dateHeader(_ text: String?) -> some View {
+        if let text {
             Text(text)
                 .font(Theme.Fonts.labelMedium)
                 .foregroundStyle(Theme.Colors.textPrimary)
+        }
+    }
+}
+
+/// The header text above a group of rows on the Dates screen.
+enum DatesHeader {
+    /// With relative dates on:
+    /// - "Today" section: no header, since it would only repeat the section title. Session
+    ///   cards still show their date, including the range of a session that started earlier.
+    /// - "This week" and "Next week": "Tomorrow" or the weekday name ("Monday") for every day,
+    ///   instead of switching to "Next Tuesday" or a date after 7 days; the section title
+    ///   already says which week it is.
+    /// Otherwise `formattedDate`, the app's usual date text.
+    static func text(
+        for date: Date?,
+        formattedDate: String,
+        status: CompletionStatus,
+        useRelativeDates: Bool,
+        now: Date = Date(),
+        calendar: Calendar = .current,
+        locale: Locale = .autoupdatingCurrent
+    ) -> String? {
+        guard useRelativeDates else { return formattedDate }
+        switch status {
+        case .today:
+            return nil
+        case .thisWeek, .nextWeek:
+            guard let date else { return formattedDate }
+            let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))
+            if let tomorrow, calendar.isDate(date, inSameDayAs: tomorrow) {
+                return CoreLocalization.tomorrow
+            }
+            let formatter = DateFormatter()
+            formatter.calendar = calendar
+            formatter.timeZone = calendar.timeZone
+            formatter.locale = locale
+            formatter.setLocalizedDateFormatFromTemplate("EEEE")
+            return formatter.string(from: date)
+        default:
+            return formattedDate
         }
     }
 }

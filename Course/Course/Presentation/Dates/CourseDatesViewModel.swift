@@ -24,12 +24,7 @@ public class CourseDatesViewModel: ObservableObject {
     @Published var isShowProgress = true
     @Published var showError: Bool = false
     @Published var courseDates: CourseDates?
-    @Published var courseSessions: [CourseSessionBlock] = [] {
-        didSet { sessionsByStatus = Self.groupByStatus(courseSessions) }
-    }
-    /// Sessions grouped into the Dates screen sections by their start day. Sessions are
-    /// informational, so they are never `.completed`; past ones go under `.past`.
-    @Published private(set) var sessionsByStatus: [CompletionStatus: [CourseSessionBlock]] = [:]
+    @Published var courseSessions: [CourseSessionBlock] = []
     /// True while the first schedule request is in flight, so a course with only sessions
     /// keeps its spinner instead of flashing the "no dates" state.
     @Published private(set) var isLoadingSessions = false
@@ -79,31 +74,45 @@ public class CourseDatesViewModel: ObservableObject {
         addObservers()
     }
         
-    var sortedStatuses: [CompletionStatus] {
-        let desiredSequence = [
-            CompletionStatus.completed,
-            CompletionStatus.pastDue,
-            CompletionStatus.past,
-            CompletionStatus.today,
-            CompletionStatus.thisWeek,
-            CompletionStatus.nextWeek,
-            CompletionStatus.upcoming
-        ]
+    /// One heading on the Dates screen with its course dates and sessions.
+    struct DatesSection: Identifiable {
+        let status: CompletionStatus
+        let dates: [Date: [CourseDateBlock]]
+        let sessions: [CourseSessionBlock]
 
-        // Filter out keys that don't exist in either dictionary
-        let dateStatuses = courseDates?.statusDatesBlocks.keys
-        let sessionStatuses = sessionsByStatus.keys
-        let filteredKeys = desiredSequence.filter {
-            (dateStatuses?.contains($0) ?? false) || sessionStatuses.contains($0)
+        var id: CompletionStatus { status }
+    }
+
+    /// The non-empty sections in display order. Course dates and sessions are grouped
+    /// together against the same `now`, once per call, so they always agree on the day
+    /// and week. Sessions are informational: never `.completed`, and past ones go under `.past`.
+    func sections(now: Date = Date()) -> [DatesSection] {
+        let desiredSequence: [CompletionStatus] = [
+            .completed, .pastDue, .past, .today, .thisWeek, .nextWeek, .upcoming
+        ]
+        let datesByStatus = courseDates?.statusDatesBlocks(now: now) ?? [:]
+        let sessionsByStatus = Self.groupByStatus(courseSessions, now: now)
+        return desiredSequence.compactMap { status in
+            let dates = datesByStatus[status] ?? [:]
+            let sessions = sessionsByStatus[status] ?? []
+            guard !dates.isEmpty || !sessions.isEmpty else { return nil }
+            return DatesSection(status: status, dates: dates, sessions: sessions)
         }
-        return filteredKeys
+    }
+
+    var sortedStatuses: [CompletionStatus] {
+        sections().map(\.status)
+    }
+
+    var sessionsByStatus: [CompletionStatus: [CourseSessionBlock]] {
+        Self.groupByStatus(courseSessions, now: Date())
     }
 
     private static func groupByStatus(
-        _ sessions: [CourseSessionBlock]
+        _ sessions: [CourseSessionBlock],
+        now: Date
     ) -> [CompletionStatus: [CourseSessionBlock]] {
-        let today = Date()
-        return Dictionary(grouping: sessions) { $0.status(today: today) }
+        Dictionary(grouping: sessions) { $0.status(today: now) }
     }
 
     var hasDatesContent: Bool {
@@ -228,6 +237,20 @@ extension CourseDatesViewModel {
             selector: #selector(getCourseDates),
             name: .getCourseDates, object: nil
         )
+
+        // Sections depend on today's date, so redraw when the day changes (midnight, or a
+        // time zone or clock change) while the screen is open.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDayChanged),
+            name: .NSCalendarDayChanged, object: nil
+        )
+    }
+
+    @objc private func handleDayChanged(_ notification: Notification) {
+        Task { @MainActor [weak self] in
+            self?.objectWillChange.send()
+        }
     }
     
     /// The course a dates notification is for. `.shiftCourseDates` is posted with the course

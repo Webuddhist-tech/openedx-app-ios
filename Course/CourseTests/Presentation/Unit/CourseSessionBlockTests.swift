@@ -131,9 +131,16 @@ final class CourseSessionBlockTests: XCTestCase {
 
     func testStatusMatchesCourseDatesOnTheSameDay() {
         // A course date later than midnight on a day must land in the same section as a
-        // session on that day.
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
+        // session on that day, for both week starts.
+        for firstWeekday in [1, 2] {
+            var calendar = calendar("Asia/Kolkata")
+            calendar.firstWeekday = firstWeekday
+            assertCourseDatesMatchSessions(now: date(calendar, 2026, 10, 13, hour: 9), calendar: calendar)
+        }
+    }
+
+    private func assertCourseDatesMatchSessions(now: Date, calendar: Calendar) {
+        let today = calendar.startOfDay(for: now)
         for days in 1...20 {
             let day = calendar.date(byAdding: .day, value: days, to: today)!
             let dueDate = calendar.date(byAdding: .hour, value: 10, to: day)!
@@ -167,11 +174,77 @@ final class CourseSessionBlockTests: XCTestCase {
             let parts = calendar.dateComponents([.year, .month, .day], from: day)
             let startDate = String(format: "%04d-%02d-%02d", parts.year!, parts.month!, parts.day!)
             XCTAssertEqual(
-                dates.statusDatesBlocks.keys.first,
-                session(startDate: startDate).status(),
-                "day +\(days)"
+                dates.statusDatesBlocks(now: now, calendar: calendar).keys.first,
+                session(startDate: startDate).status(today: now, calendar: calendar),
+                "day +\(days), first weekday \(calendar.firstWeekday)"
             )
         }
+    }
+
+    func testDateSectionUsesCalendarWeeks() {
+        var calendar = calendar("Asia/Kolkata")
+        calendar.firstWeekday = 1
+        // Tuesday 13 Oct 2026; the week runs Sun 11 – Sat 17.
+        let now = date(calendar, 2026, 10, 13, hour: 15)
+        let cases: [((Int, Int), CompletionStatus)] = [
+            ((10, 12), .past),
+            ((10, 13), .today),
+            ((10, 14), .thisWeek),
+            ((10, 17), .thisWeek),
+            ((10, 18), .nextWeek),
+            ((10, 24), .nextWeek),
+            ((10, 25), .upcoming)
+        ]
+        for ((month, day), expected) in cases {
+            // Late in the day, to check whole days are compared rather than instants.
+            let value = date(calendar, 2026, month, day, hour: 23)
+            XCTAssertEqual(value.dateSection(today: now, calendar: calendar), expected, "\(month)/\(day)")
+        }
+        XCTAssertEqual(date(calendar, 2026, 10, 18, hour: 0).weeksFromCurrentWeek(today: now, calendar: calendar), 1)
+        XCTAssertEqual(date(calendar, 2026, 10, 10, hour: 0).weeksFromCurrentWeek(today: now, calendar: calendar), -1)
+    }
+
+    func testCourseDateEarlierTodayIsPastDue() {
+        let calendar = calendar("Asia/Kolkata")
+        let now = date(calendar, 2026, 10, 13, hour: 15)
+        let earlier = date(calendar, 2026, 10, 13, hour: 9)
+        let later = date(calendar, 2026, 10, 13, hour: 20)
+        let blocks = [earlier, later].map { due in
+            CourseDateBlock(
+                assignmentType: nil, complete: false, date: due, dateType: "assignment-due-date",
+                description: "", learnerHasAccess: true, link: "", linkText: nil, title: "Quiz",
+                extraInfo: nil, firstComponentBlockID: "", useRelativeDates: false
+            )
+        }
+        let dates = CourseDates(
+            datesBannerInfo: DatesBannerInfo(
+                missedDeadlines: false, contentTypeGatingEnabled: false, missedGatedContent: false,
+                verifiedUpgradeLink: nil, status: nil
+            ),
+            courseDateBlocks: blocks, hasEnded: false, learnerIsFullAccess: true, userTimezone: nil
+        )
+        let sections = dates.statusDatesBlocks(now: now, calendar: calendar)
+        XCTAssertEqual(sections[.pastDue]?.keys.sorted(), [earlier])
+        XCTAssertEqual(sections[.today]?.keys.sorted(), [later])
+    }
+
+    func testOngoingMultiDaySessionIsToday() {
+        let calendar = calendar("Asia/Kolkata")
+        let today = date(calendar, 2026, 10, 13)
+        let running = session(startDate: "2026-10-12", endDate: "2026-10-14", numDays: 3)
+        XCTAssertTrue(running.isOngoing(today: today, calendar: calendar))
+        XCTAssertEqual(running.status(today: today, calendar: calendar), .today)
+
+        let endsToday = session(startDate: "2026-10-11", endDate: "2026-10-13", numDays: 3)
+        XCTAssertEqual(endsToday.status(today: today, calendar: calendar), .today)
+
+        let finished = session(startDate: "2026-10-10", endDate: "2026-10-12", numDays: 3)
+        XCTAssertFalse(finished.isOngoing(today: today, calendar: calendar))
+        XCTAssertEqual(finished.status(today: today, calendar: calendar), .past)
+
+        let startsToday = session(startDate: "2026-10-13", endDate: "2026-10-15", numDays: 3)
+        XCTAssertFalse(startsToday.isOngoing(today: today, calendar: calendar))
+        XCTAssertEqual(startsToday.status(today: today, calendar: calendar), .today)
     }
 
     func testDisabledScheduleHasNoSessions() throws {
@@ -367,6 +440,36 @@ final class CourseSessionBlockTests: XCTestCase {
                 XCTAssertEqual(session(startDate: "2026-10-14").dayOffset(from: today, calendar: calendar), 1, identifier)
             }
         }
+    }
+
+    func testHeadersNameEveryDayOfThisAndNextWeek() {
+        var calendar = calendar("Asia/Kolkata")
+        calendar.firstWeekday = 2
+        // Tuesday 13 Oct 2026; next week runs Mon 19 – Sun 25.
+        let now = date(calendar, 2026, 10, 13, hour: 15)
+        func header(_ day: Int, _ status: CompletionStatus, relative: Bool = true) -> String? {
+            DatesHeader.text(
+                for: date(calendar, 2026, 10, day, hour: 12),
+                formattedDate: "formatted",
+                status: status,
+                useRelativeDates: relative,
+                now: now,
+                calendar: calendar,
+                locale: locale
+            )
+        }
+        XCTAssertNil(header(13, .today))
+        XCTAssertEqual(header(14, .thisWeek), CoreLocalization.tomorrow)
+        XCTAssertEqual(header(16, .thisWeek), "Friday")
+        XCTAssertEqual(header(19, .nextWeek), "Monday")
+        // Seven days ahead would be "Next Tuesday", and eight a date, in timeAgoDisplay.
+        XCTAssertEqual(header(20, .nextWeek), "Tuesday")
+        XCTAssertEqual(header(21, .nextWeek), "Wednesday")
+        XCTAssertEqual(header(25, .nextWeek), "Sunday")
+        XCTAssertEqual(header(26, .upcoming), "formatted")
+        XCTAssertEqual(header(12, .pastDue), "formatted")
+        XCTAssertEqual(header(13, .today, relative: false), "formatted")
+        XCTAssertEqual(header(21, .nextWeek, relative: false), "formatted")
     }
 
     func testEntriesInterleaveDatesAndSessionsByDay() {

@@ -64,11 +64,17 @@ public struct CourseSessionBlock: Identifiable, Hashable, Sendable {
     /// calendar day whatever the device timezone. Start-time minutes are added as seconds
     /// so sessions on the same day keep their time order.
     public func localDate(calendar: Calendar = .current) -> Date? {
-        guard let day = Self.dayComponents(startDate) else { return nil }
-        var components = day
-        components.hour = 12
-        components.second = Self.minutesOfDay(startTime) ?? 0
-        return calendar.date(from: components)
+        Self.midday(of: startDate, plusSeconds: Self.minutesOfDay(startTime) ?? 0, calendar: calendar)
+    }
+
+    /// True while a multi-day session is running: it started before `today` and its last
+    /// day is today or later.
+    public func isOngoing(today: Date = Date(), calendar: Calendar = .current) -> Bool {
+        guard numDays > 1,
+              let start = localDate(calendar: calendar),
+              let end = Self.midday(of: endDate, calendar: calendar) else { return false }
+        let startOfToday = calendar.startOfDay(for: today)
+        return calendar.startOfDay(for: start) < startOfToday && calendar.startOfDay(for: end) >= startOfToday
     }
 
     /// Whole calendar days from `today` to `startDate`: 0 for today, negative when past.
@@ -81,18 +87,12 @@ public struct CourseSessionBlock: Identifiable, Hashable, Sendable {
         ).day
     }
 
-    /// The Dates screen section the session belongs to: past, today, or by calendar week
-    /// (`Date.weeksFromCurrentWeek`), the same weeks `CourseDates.statusDatesBlocks` uses.
+    /// The Dates screen section the session belongs to, from the same `Date.dateSection`
+    /// rule as course dates. A multi-day session that is still running counts as today.
     public func status(today: Date = Date(), calendar: Calendar = .current) -> CompletionStatus {
-        guard let offset = dayOffset(from: today, calendar: calendar),
-              let date = localDate(calendar: calendar) else { return .upcoming }
-        if offset < 0 { return .past }
-        if offset == 0 { return .today }
-        switch date.weeksFromCurrentWeek(today: today, calendar: calendar) ?? 2 {
-        case ...0: return .thisWeek
-        case 1: return .nextWeek
-        default: return .upcoming
-        }
+        guard let date = localDate(calendar: calendar) else { return .upcoming }
+        if isOngoing(today: today, calendar: calendar) { return .today }
+        return date.dateSection(today: today, calendar: calendar)
     }
 
     /// Date header text, in the same style as `CourseDateBlock.formattedDate`.
@@ -156,6 +156,15 @@ public struct CourseSessionBlock: Identifiable, Hashable, Sendable {
         let parts = value.split(separator: "-").compactMap { Int($0) }
         guard parts.count == 3 else { return nil }
         return DateComponents(year: parts[0], month: parts[1], day: parts[2])
+    }
+
+    /// Midday of a "YYYY-MM-DD" day in `calendar`, so a timezone shift can't move it to
+    /// another day, optionally nudged by some seconds to keep same-day items in time order.
+    static func midday(of value: String, plusSeconds seconds: Int = 0, calendar: Calendar) -> Date? {
+        guard var components = dayComponents(value) else { return nil }
+        components.hour = 12
+        components.second = seconds
+        return calendar.date(from: components)
     }
 
     /// Minutes since midnight of an "HH:mm" string.

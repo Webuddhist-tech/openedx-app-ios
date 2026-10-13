@@ -36,8 +36,12 @@ struct CourseSessionView: View {
                 detail(CourseLocalization.CourseDates.sessionContentAvailableFrom(date))
             }
             if !session.notes.isEmpty {
+                // A hairline keeps the free-text notes apart from the session details.
+                Rectangle()
+                    .fill(Theme.Colors.cardViewStroke)
+                    .frame(height: 1)
+                    .padding(.vertical, 5)
                 detail(session.notes)
-                    .padding(.top, 3)
             }
         }
         .padding(.horizontal, 12)

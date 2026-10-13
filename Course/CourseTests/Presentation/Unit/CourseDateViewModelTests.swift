@@ -7,6 +7,7 @@
 
 import XCTest
 import Alamofire
+import Combine
 import SwiftyMocky
 @testable import Core
 @testable import Course
@@ -653,5 +654,49 @@ final class CourseDateViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.sessionsByStatus[.past]?.map(\.id), ["section--3"])
         XCTAssertEqual(viewModel.sessionsByStatus[.today]?.map(\.id), ["section-0"])
         XCTAssertTrue(viewModel.isShowProgress, "Loading sessions must not change the dates progress state")
+    }
+
+    func testSectionsGroupDatesAndSessionsAgainstTheSameNow() {
+        let viewModel = makeViewModel(interactor: CourseInteractorProtocolMock())
+        let calendar = Calendar.current
+        let now = Date()
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!
+        let dueTomorrow = calendar.date(byAdding: .hour, value: 10, to: tomorrow)!
+        viewModel.courseDates = CourseDates(
+            datesBannerInfo: DatesBannerInfo(
+                missedDeadlines: false, contentTypeGatingEnabled: false, missedGatedContent: false,
+                verifiedUpgradeLink: nil, status: nil
+            ),
+            courseDateBlocks: [
+                CourseDateBlock(
+                    assignmentType: nil, complete: false, date: dueTomorrow, dateType: "assignment-due-date",
+                    description: "", learnerHasAccess: true, link: "", linkText: nil, title: "Quiz",
+                    extraInfo: nil, firstComponentBlockID: "", useRelativeDates: false
+                )
+            ],
+            hasEnded: false, learnerIsFullAccess: true, userTimezone: nil
+        )
+        viewModel.courseSessions = [session(daysFromToday: 1), session(daysFromToday: -1)]
+
+        let sections = viewModel.sections(now: now)
+
+        XCTAssertEqual(sections.first?.status, .past)
+        XCTAssertEqual(sections.first?.sessions.map(\.id), ["section--1"])
+        // Tomorrow's assignment and session share one section, whichever week it falls in.
+        XCTAssertEqual(sections.count, 2)
+        XCTAssertEqual(sections.last?.dates.keys.sorted(), [dueTomorrow])
+        XCTAssertEqual(sections.last?.sessions.map(\.id), ["section-1"])
+    }
+
+    func testDayChangeRedrawsTheDatesScreen() async {
+        let viewModel = makeViewModel(interactor: CourseInteractorProtocolMock())
+        let redrawn = expectation(description: "view model announced a change")
+        redrawn.assertForOverFulfill = false
+        let subscription = viewModel.objectWillChange.sink { _ in redrawn.fulfill() }
+
+        NotificationCenter.default.post(name: .NSCalendarDayChanged, object: nil)
+
+        await fulfillment(of: [redrawn], timeout: 2)
+        subscription.cancel()
     }
 }
