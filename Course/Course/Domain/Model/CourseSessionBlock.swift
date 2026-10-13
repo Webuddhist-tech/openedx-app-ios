@@ -81,16 +81,16 @@ public struct CourseSessionBlock: Identifiable, Hashable, Sendable {
         ).day
     }
 
-    /// The Dates screen section the session belongs to. The ranges match where
-    /// `CourseDates.statusDatesBlocks` puts a course date later than midnight on the same day:
-    /// `Date.isThisWeek` ends at the start of day 8 and `isNextWeek` at the start of day 15.
+    /// The Dates screen section the session belongs to: past, today, or by calendar week
+    /// (`Date.weeksFromCurrentWeek`), the same weeks `CourseDates.statusDatesBlocks` uses.
     public func status(today: Date = Date(), calendar: Calendar = .current) -> CompletionStatus {
-        guard let offset = dayOffset(from: today, calendar: calendar) else { return .upcoming }
-        switch offset {
-        case ..<0: return .past
-        case 0: return .today
-        case 1...7: return .thisWeek
-        case 8...14: return .nextWeek
+        guard let offset = dayOffset(from: today, calendar: calendar),
+              let date = localDate(calendar: calendar) else { return .upcoming }
+        if offset < 0 { return .past }
+        if offset == 0 { return .today }
+        switch date.weeksFromCurrentWeek(today: today, calendar: calendar) ?? 2 {
+        case ...0: return .thisWeek
+        case 1: return .nextWeek
         default: return .upcoming
         }
     }

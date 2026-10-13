@@ -119,27 +119,30 @@ public extension Date {
         return Date.compare(self, to: .today) == .orderedDescending
     }
     
+    // "This week" and "Next week" are calendar weeks of the device calendar, which follows
+    // the locale's first weekday (Sunday or Monday), not rolling 7-day windows.
+
     var isThisWeek: Bool {
-        // Items due within the next 7 days (7*24 hours from now)
-        let calendar = Calendar.current
-        let nextDay = calendar.date(byAdding: .day, value: 1, to: .today) ?? .distantPast
-        let nextSeventhDay = calendar.date(byAdding: .day, value: 8, to: .today) ?? .distantPast
-        return (nextDay...nextSeventhDay).contains(self)
+        // After today, up to the end of the current week
+        return !isInPast && !isToday && weeksFromCurrentWeek() == 0
     }
-    
+
     var isNextWeek: Bool {
-        // Items due within the next 14 days (14*24 hours from now)
-        let calendar = Calendar.current
-        let nextEighthDay = calendar.date(byAdding: .day, value: 8, to: .today) ?? .distantPast
-        let nextFourteenthDay = calendar.date(byAdding: .day, value: 15, to: .today) ?? .distantPast
-        return (nextEighthDay...nextFourteenthDay).contains(self)
+        // Anywhere in the following calendar week
+        return weeksFromCurrentWeek() == 1
     }
-    
+
     var isUpcoming: Bool {
-        // Items due after the next 14 days (14*24 hours from now)
-        let calendar = Calendar.current
-        let nextFourteenthDay = calendar.date(byAdding: .day, value: 14, to: .today) ?? .distantPast
-        return Date.compare(self, to: nextFourteenthDay) == .orderedDescending
+        // After the end of next week
+        return (weeksFromCurrentWeek() ?? 0) >= 2
+    }
+
+    /// Whole calendar weeks from the week containing `today` to the week containing this
+    /// date: 0 for the current week, 1 for next week, negative for earlier weeks.
+    func weeksFromCurrentWeek(today: Date = Date(), calendar: Calendar = .current) -> Int? {
+        guard let currentWeek = calendar.dateInterval(of: .weekOfYear, for: today),
+              let dateWeek = calendar.dateInterval(of: .weekOfYear, for: self) else { return nil }
+        return calendar.dateComponents([.weekOfYear], from: currentWeek.start, to: dateWeek.start).weekOfYear
     }
 }
 

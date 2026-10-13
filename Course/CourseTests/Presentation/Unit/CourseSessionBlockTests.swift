@@ -278,25 +278,76 @@ final class CourseSessionBlockTests: XCTestCase {
         calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour))!
     }
 
-    func testStatusBoundaries() {
-        let calendar = calendar("Asia/Kolkata")
-        let today = date(calendar, 2026, 10, 13)
-        let cases: [(String, CompletionStatus)] = [
-            ("2026-10-12", .past),
-            ("2026-10-13", .today),
-            ("2026-10-14", .thisWeek),
-            ("2026-10-20", .thisWeek),
-            ("2026-10-21", .nextWeek),
-            ("2026-10-27", .nextWeek),
-            ("2026-10-28", .upcoming)
-        ]
+    private func assertStatuses(
+        _ cases: [(String, CompletionStatus)],
+        today: Date,
+        calendar: Calendar,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
         for (startDate, expected) in cases {
             XCTAssertEqual(
                 session(startDate: startDate).status(today: today, calendar: calendar),
                 expected,
-                startDate
+                startDate,
+                file: file,
+                line: line
             )
         }
+    }
+
+    func testStatusUsesCalendarWeeksStartingSunday() {
+        var calendar = calendar("Asia/Kolkata")
+        calendar.firstWeekday = 1
+        // Tuesday 13 Oct; the week runs Sun 11 – Sat 17.
+        let today = date(calendar, 2026, 10, 13)
+        assertStatuses([
+            ("2026-10-12", .past),
+            ("2026-10-13", .today),
+            ("2026-10-14", .thisWeek),
+            ("2026-10-17", .thisWeek),
+            ("2026-10-18", .nextWeek),
+            ("2026-10-24", .nextWeek),
+            ("2026-10-25", .upcoming)
+        ], today: today, calendar: calendar)
+    }
+
+    func testStatusUsesCalendarWeeksStartingMonday() {
+        var calendar = calendar("Asia/Kolkata")
+        calendar.firstWeekday = 2
+        // Tuesday 13 Oct; the week runs Mon 12 – Sun 18.
+        let today = date(calendar, 2026, 10, 13)
+        assertStatuses([
+            ("2026-10-18", .thisWeek),
+            ("2026-10-19", .nextWeek),
+            ("2026-10-25", .nextWeek),
+            ("2026-10-26", .upcoming)
+        ], today: today, calendar: calendar)
+    }
+
+    func testStatusOnLastDayOfWeekHasNoThisWeek() {
+        var calendar = calendar("Asia/Kolkata")
+        calendar.firstWeekday = 1
+        // Saturday 17 Oct is the last day of its week, so tomorrow is already next week.
+        let today = date(calendar, 2026, 10, 17)
+        assertStatuses([
+            ("2026-10-17", .today),
+            ("2026-10-18", .nextWeek),
+            ("2026-10-24", .nextWeek),
+            ("2026-10-25", .upcoming)
+        ], today: today, calendar: calendar)
+    }
+
+    func testStatusAcrossYearEnd() {
+        var calendar = calendar("Asia/Kolkata")
+        calendar.firstWeekday = 2
+        // Wednesday 30 Dec 2026; the next week starts Monday 4 Jan 2027.
+        let today = date(calendar, 2026, 12, 30)
+        assertStatuses([
+            ("2027-01-03", .thisWeek),
+            ("2027-01-04", .nextWeek),
+            ("2027-01-11", .upcoming)
+        ], today: today, calendar: calendar)
     }
 
     func testSessionEarlierTodayIsStillToday() {

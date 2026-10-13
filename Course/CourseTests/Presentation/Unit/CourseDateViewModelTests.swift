@@ -595,7 +595,7 @@ final class CourseDateViewModelTests: XCTestCase {
         await viewModel.getCourseSessions(courseID: "1")
 
         XCTAssertEqual(viewModel.courseSessions.map(\.id), ["section-1"])
-        XCTAssertEqual(viewModel.sessionsByStatus[.thisWeek]?.map(\.id), ["section-1"])
+        XCTAssertEqual(viewModel.sessionsByStatus.values.flatMap { $0 }.map(\.id), ["section-1"])
         XCTAssertFalse(viewModel.isLoadingSessions)
     }
 
@@ -635,8 +635,7 @@ final class CourseDateViewModelTests: XCTestCase {
         let sessions = [
             session(daysFromToday: -3),
             session(daysFromToday: 0),
-            session(daysFromToday: 2),
-            session(daysFromToday: 10),
+            session(daysFromToday: 7),
             session(daysFromToday: 30)
         ]
         Given(interactor, .getCourseSchedule(courseID: .any, willReturn: sessions))
@@ -644,9 +643,11 @@ final class CourseDateViewModelTests: XCTestCase {
 
         await viewModel.getCourseSessions(courseID: "1")
 
-        XCTAssertEqual(viewModel.courseSessions.count, 5)
+        XCTAssertEqual(viewModel.courseSessions.count, 4)
         XCTAssertTrue(viewModel.hasDatesContent)
-        XCTAssertEqual(viewModel.sortedStatuses, [.past, .today, .thisWeek, .nextWeek, .upcoming])
+        // A week from today is always next calendar week; this week's coverage is in
+        // CourseSessionBlockTests, which fixes the weekday.
+        XCTAssertEqual(viewModel.sortedStatuses, [.past, .today, .nextWeek, .upcoming])
         XCTAssertNil(viewModel.sessionsByStatus[.completed])
         XCTAssertNil(viewModel.sessionsByStatus[.pastDue])
         XCTAssertEqual(viewModel.sessionsByStatus[.past]?.map(\.id), ["section--3"])
