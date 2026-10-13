@@ -77,18 +77,14 @@ struct CourseDateListView: View {
                                             switch entry {
                                             case let .dates(_, blocks):
                                                 let block = blocks[0]
-                                                Text(block.formattedDate)
-                                                    .font(Theme.Fonts.labelMedium)
-                                                    .foregroundStyle(Theme.Colors.textPrimary)
+                                                dateHeader(block.formattedDate, status: status)
                                                 BlockStatusView(
                                                     viewModel: viewModel,
                                                     block: block,
                                                     blocks: blocks
                                                 )
                                             case let .session(session):
-                                                Text(session.formattedDate)
-                                                    .font(Theme.Fonts.labelMedium)
-                                                    .foregroundStyle(Theme.Colors.textPrimary)
+                                                dateHeader(session.formattedDate, status: status)
                                                 CourseSessionView(session: session)
                                             }
                                         }
@@ -105,6 +101,17 @@ struct CourseDateListView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+        }
+    }
+
+    /// The date above a group of rows. Hidden when it only repeats the section title,
+    /// e.g. "Today" under the "Today" section with relative dates on.
+    @ViewBuilder
+    private func dateHeader(_ text: String, status: CompletionStatus) -> some View {
+        if text.caseInsensitiveCompare(status.localized) != .orderedSame {
+            Text(text)
+                .font(Theme.Fonts.labelMedium)
+                .foregroundStyle(Theme.Colors.textPrimary)
         }
     }
 }

@@ -174,6 +174,7 @@
 "COURSE_DATES.CALENDAR_PERMISSION_NOT_DETERMINED"="%@ does not have calendar permission. Please go to settings and give calender permission.";
 "COURSE_DATES.OPEN_SETTINGS"="Open Settings";
 "COURSE_DATES.SETTINGS" = "Settings";
+"COURSE_DATES.SESSION_LIVE" = "Live session";
 "COURSE_DATES.SESSION_INSTRUCTOR" = "Instructor: %@";
 "COURSE_DATES.SESSION_TOOLS_REQUIRED" = "Tools required: %@";
 "COURSE_DATES.SESSION_CONTENT_AVAILABLE_FROM" = "Content available from %@";

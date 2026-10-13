@@ -210,12 +210,12 @@ final class CourseSessionBlockTests: XCTestCase {
     func testSingleDayShowsItsDateWithRelativeDates() {
         let relative = session(useRelativeDates: true)
         XCTAssertEqual(relative.daysText(locale: locale), "Oct 12, 2026")
-        XCTAssertEqual(normalized(relative.whenText(locale: locale)), "Oct 12, 2026 · 7:00 PM–8:30 PM IST")
     }
 
     func testSingleDayWithoutTimeStillShowsItsDateWithRelativeDates() {
         let relative = session(startTime: nil, endTime: nil, useRelativeDates: true)
-        XCTAssertEqual(relative.whenText(locale: locale), "Oct 12, 2026")
+        XCTAssertEqual(relative.daysText(locale: locale), "Oct 12, 2026")
+        XCTAssertNil(relative.timeText(locale: locale))
     }
 
     func testMultiDayTextIsTheSameWithRelativeDates() {
@@ -233,15 +233,6 @@ final class CourseSessionBlockTests: XCTestCase {
         XCTAssertEqual(multiDay.daysText(locale: locale), "Dec 31, 2026 – Jan 2, 2027")
     }
 
-    func testWhenTextPutsDaysBeforeTime() {
-        let multiDay = session(startDate: "2026-10-13", endDate: "2026-10-14", numDays: 2)
-        XCTAssertEqual(normalized(multiDay.whenText(locale: locale)), "Oct 13 – Oct 14, 2026 · 7:00 PM–8:30 PM IST")
-    }
-
-    func testWhenTextIsNilWithoutTimeOrDays() {
-        XCTAssertNil(session(startTime: nil, endTime: nil).whenText(locale: locale))
-    }
-
     func testContentAvailableFromText() {
         let late = session(contentAvailableFrom: "2026-10-20")
         XCTAssertEqual(late.contentAvailableFromText(locale: locale), "Oct 20, 2026")
@@ -254,7 +245,8 @@ final class CourseSessionBlockTests: XCTestCase {
         for identifier in ["America/Los_Angeles", "Asia/Kolkata", "Pacific/Kiritimati", "UTC"] {
             NSTimeZone.default = TimeZone(identifier: identifier)!
             let text = [
-                multiDay.whenText(locale: locale),
+                multiDay.daysText(locale: locale),
+                multiDay.timeText(locale: locale),
                 multiDay.contentAvailableFromText(locale: locale),
                 session(contentAvailableFrom: "2026-10-20").contentAvailableFromText(locale: locale)
             ].compactMap { $0 }.joined(separator: "|")
