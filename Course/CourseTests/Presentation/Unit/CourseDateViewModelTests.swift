@@ -533,4 +533,80 @@ final class CourseDateViewModelTests: XCTestCase {
         XCTAssertEqual(BlockStatus.status(of: "assignment-due-date"), .assignment, "Incorrect mapping for 'assignment-due-date'")
         XCTAssertEqual(BlockStatus.status(of: ""), .event, "Incorrect mapping for 'event'")
     }
+
+    // MARK: - Section schedule
+
+    private func makeViewModel(interactor: CourseInteractorProtocolMock) -> CourseDatesViewModel {
+        CourseDatesViewModel(
+            interactor: interactor,
+            router: CourseRouterMock(),
+            cssInjector: CSSInjectorMock(),
+            connectivity: ConnectivityProtocolMock(),
+            config: ConfigMock(),
+            courseID: "1",
+            courseName: "a",
+            analytics: CourseAnalyticsMock(),
+            calendarManager: CalendarManagerMock()
+        )
+    }
+
+    private func session(daysFromToday days: Int) -> CourseSessionBlock {
+        let day = Calendar.current.date(byAdding: .day, value: days, to: Date())!
+        let parts = Calendar.current.dateComponents([.year, .month, .day], from: day)
+        let startDate = String(format: "%04d-%02d-%02d", parts.year!, parts.month!, parts.day!)
+        return CourseSessionBlock(
+            id: "section-\(days)",
+            title: "Session \(days)",
+            startDate: startDate,
+            endDate: startDate,
+            numDays: 1,
+            startTime: "19:00",
+            endTime: "20:30",
+            timezoneAbbr: "IST",
+            instructor: "",
+            toolsRequired: "",
+            notes: "",
+            contentAvailableFrom: nil,
+            useRelativeDates: false
+        )
+    }
+
+    func testGetCourseSessionsFailureShowsNoSessionsAndNoError() async {
+        let interactor = CourseInteractorProtocolMock()
+        Given(interactor, .getCourseSchedule(courseID: .any, willThrow: NSError(domain: "error", code: 404)))
+        let viewModel = makeViewModel(interactor: interactor)
+        viewModel.courseSessions = [session(daysFromToday: 1)]
+
+        await viewModel.getCourseSessions(courseID: "1")
+
+        Verify(interactor, .getCourseSchedule(courseID: .value("1")))
+        XCTAssertTrue(viewModel.courseSessions.isEmpty)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertFalse(viewModel.showError)
+        XCTAssertFalse(viewModel.hasDatesContent)
+    }
+
+    func testGetCourseSessionsGroupsSessionsIntoSections() async {
+        let interactor = CourseInteractorProtocolMock()
+        let sessions = [
+            session(daysFromToday: -3),
+            session(daysFromToday: 0),
+            session(daysFromToday: 2),
+            session(daysFromToday: 10),
+            session(daysFromToday: 30)
+        ]
+        Given(interactor, .getCourseSchedule(courseID: .any, willReturn: sessions))
+        let viewModel = makeViewModel(interactor: interactor)
+
+        await viewModel.getCourseSessions(courseID: "1")
+
+        XCTAssertEqual(viewModel.courseSessions.count, 5)
+        XCTAssertTrue(viewModel.hasDatesContent)
+        XCTAssertEqual(viewModel.sortedStatuses, [.past, .today, .thisWeek, .nextWeek, .upcoming])
+        XCTAssertNil(viewModel.sessionsByStatus[.completed])
+        XCTAssertNil(viewModel.sessionsByStatus[.pastDue])
+        XCTAssertEqual(viewModel.sessionsByStatus[.past]?.map(\.id), ["section--3"])
+        XCTAssertEqual(viewModel.sessionsByStatus[.today]?.map(\.id), ["section-0"])
+        XCTAssertTrue(viewModel.isShowProgress, "Loading sessions must not change the dates progress state")
+    }
 }

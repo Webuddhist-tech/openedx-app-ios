@@ -152,6 +152,7 @@
 		CECF38362E3A545B00184EC4 /* AssignmentContentData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CECF38352E3A545B00184EC4 /* AssignmentContentData.swift */; };
 		CECF38382E3A73C200184EC4 /* VideoThumbnailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CECF38372E3A73C200184EC4 /* VideoThumbnailService.swift */; };
 		DB205BFB2AE81B1200136EC2 /* CourseDateViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB205BFA2AE81B1200136EC2 /* CourseDateViewModelTests.swift */; };
+		213110E39EBA4AFBE2C5F9F7 /* CourseSessionBlockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85B753E8090DB172E95FF922 /* CourseSessionBlockTests.swift */; };
 		DB7D6EAC2ADFCAC50036BB13 /* CourseDatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB7D6EAB2ADFCAC40036BB13 /* CourseDatesView.swift */; };
 		DB7D6EAE2ADFCB4A0036BB13 /* CourseDatesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB7D6EAD2ADFCB4A0036BB13 /* CourseDatesViewModel.swift */; };
 /* End PBXBuildFile section */
@@ -380,6 +381,7 @@
 		CECF38352E3A545B00184EC4 /* AssignmentContentData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignmentContentData.swift; sourceTree = "<group>"; };
 		CECF38372E3A73C200184EC4 /* VideoThumbnailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoThumbnailService.swift; sourceTree = "<group>"; };
 		DB205BFA2AE81B1200136EC2 /* CourseDateViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseDateViewModelTests.swift; sourceTree = "<group>"; };
+		85B753E8090DB172E95FF922 /* CourseSessionBlockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseSessionBlockTests.swift; sourceTree = "<group>"; };
 		DB7D6EAB2ADFCAC40036BB13 /* CourseDatesView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CourseDatesView.swift; sourceTree = "<group>"; };
 		DB7D6EAD2ADFCB4A0036BB13 /* CourseDatesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseDatesViewModel.swift; sourceTree = "<group>"; };
 		DBE05972CB5115D4535C6B8A /* Pods-App-Course-CourseTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App-Course-CourseTests.debug.xcconfig"; path = "Target Support Files/Pods-App-Course-CourseTests/Pods-App-Course-CourseTests.debug.xcconfig"; sourceTree = "<group>"; };
@@ -723,6 +725,7 @@
 				0262148E29AE17C4008BD75A /* HandoutsViewModelTests.swift */,
 				0295B1D8297E6DF8003B0C65 /* CourseUnitViewModelTests.swift */,
 				DB205BFA2AE81B1200136EC2 /* CourseDateViewModelTests.swift */,
+				85B753E8090DB172E95FF922 /* CourseSessionBlockTests.swift */,
 				CE4BA8822E0806380050F2C7 /* CourseProgressViewModelTests.swift */,
 			);
 			path = Unit;
@@ -1201,6 +1204,7 @@
 				02F78AEB29E6BCA20038DE30 /* VideoPlayerViewModelTests.swift in Sources */,
 				023812F3297AC9ED0087098F /* CourseMock.generated.swift in Sources */,
 				DB205BFB2AE81B1200136EC2 /* CourseDateViewModelTests.swift in Sources */,
+				213110E39EBA4AFBE2C5F9F7 /* CourseSessionBlockTests.swift in Sources */,
 				022EA8CB297AD63B0014A8F7 /* CourseContainerViewModelTests.swift in Sources */,
 				0262148F29AE17C4008BD75A /* HandoutsViewModelTests.swift in Sources */,
 			);
