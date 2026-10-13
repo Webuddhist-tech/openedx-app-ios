@@ -575,7 +575,6 @@ final class CourseDateViewModelTests: XCTestCase {
         let interactor = CourseInteractorProtocolMock()
         Given(interactor, .getCourseSchedule(courseID: .any, willThrow: NSError(domain: "error", code: 404)))
         let viewModel = makeViewModel(interactor: interactor)
-        viewModel.courseSessions = [session(daysFromToday: 1)]
 
         await viewModel.getCourseSessions(courseID: "1")
 
@@ -584,6 +583,51 @@ final class CourseDateViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
         XCTAssertFalse(viewModel.showError)
         XCTAssertFalse(viewModel.hasDatesContent)
+        XCTAssertFalse(viewModel.isLoadingSessions)
+    }
+
+    func testFailedRefreshKeepsLoadedSessions() async {
+        let interactor = CourseInteractorProtocolMock()
+        Given(interactor, .getCourseSchedule(courseID: .any, willThrow: NSError(domain: "error", code: -1009)))
+        let viewModel = makeViewModel(interactor: interactor)
+        viewModel.courseSessions = [session(daysFromToday: 1)]
+
+        await viewModel.getCourseSessions(courseID: "1")
+
+        XCTAssertEqual(viewModel.courseSessions.map(\.id), ["section-1"])
+        XCTAssertEqual(viewModel.sessionsByStatus[.thisWeek]?.map(\.id), ["section-1"])
+        XCTAssertFalse(viewModel.isLoadingSessions)
+    }
+
+    func testShiftDatesNotificationFromDatesScreenRefreshesSessions() async {
+        let interactor = CourseInteractorProtocolMock()
+        let refreshed = expectation(description: "schedule reloaded")
+        Given(interactor, .getCourseSchedule(courseID: .any, willReturn: []))
+        Given(interactor, .getCourseDates(courseID: .any, willThrow: NSError(domain: "error", code: -1)))
+        Perform(interactor, .getCourseSchedule(courseID: .value("1"), perform: { _ in refreshed.fulfill() }))
+        let viewModel = makeViewModel(interactor: interactor)
+
+        // The Dates screen posts the course ID together with the course name.
+        let object: (String, String) = ("1", "a")
+        NotificationCenter.default.post(name: .shiftCourseDates, object: object)
+
+        await fulfillment(of: [refreshed], timeout: 2)
+        withExtendedLifetime(viewModel) {}
+    }
+
+    func testDatesNotificationForAnotherCourseIsIgnored() async throws {
+        let interactor = CourseInteractorProtocolMock()
+        Given(interactor, .getCourseSchedule(courseID: .any, willReturn: []))
+        Given(interactor, .getCourseDates(courseID: .any, willThrow: NSError(domain: "error", code: -1)))
+        let viewModel = makeViewModel(interactor: interactor)
+
+        let otherCourseID: String = "another-course"
+        NotificationCenter.default.post(name: .getCourseDates, object: otherCourseID)
+        try await Task.sleep(nanoseconds: 200_000_000)
+
+        Verify(interactor, 0, .getCourseSchedule(courseID: .any))
+        Verify(interactor, 0, .getCourseDates(courseID: .any))
+        withExtendedLifetime(viewModel) {}
     }
 
     func testGetCourseSessionsGroupsSessionsIntoSections() async {

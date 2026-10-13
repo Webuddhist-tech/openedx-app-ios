@@ -13,6 +13,27 @@ public extension DataLayer {
         let enabled: Bool
         let timezone: String?
         let sessions: [CourseSession]?
+
+        enum CodingKeys: String, CodingKey {
+            case enabled, timezone, sessions
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            enabled = try container.decode(Bool.self, forKey: .enabled)
+            timezone = try container.decodeIfPresent(String.self, forKey: .timezone)
+            // Skip a malformed session rather than losing the whole schedule.
+            sessions = try container.decodeIfPresent([LossySession].self, forKey: .sessions)?
+                .compactMap(\.session)
+        }
+
+        private struct LossySession: Decodable {
+            let session: CourseSession?
+
+            init(from decoder: Decoder) throws {
+                session = try? CourseSession(from: decoder)
+            }
+        }
     }
 
     struct CourseSession: Codable {

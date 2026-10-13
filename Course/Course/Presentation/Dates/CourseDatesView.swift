@@ -39,7 +39,7 @@ public struct CourseDatesView: View {
     public var body: some View {
         ZStack {
             VStack(alignment: .center) {
-                if viewModel.isShowProgress {
+                if viewModel.isShowProgress || (viewModel.isLoadingSessions && !viewModel.hasDatesContent) {
                     HStack(alignment: .center) {
                         ProgressBar(size: 40, lineWidth: 8)
                             .padding(.top, 200)

@@ -31,7 +31,9 @@ struct CourseDateListView: View {
 
                         @State var status: SyncStatus = .offline
 
-                        if let courseDates {
+                        // Calendar sync and the dates banner only apply to course dates; sessions
+                        // alone don't need them.
+                        if let courseDates, !courseDates.courseDateBlocks.isEmpty {
                             CalendarSyncStatusView(status: status, router: viewModel.router)
                                 .padding(.bottom, 16)
                                 .task {
@@ -58,7 +60,7 @@ struct CourseDateListView: View {
                                     viewModel: viewModel
                                 )
                             } else {
-                                Text(status.rawValue)
+                                Text(status.localized)
                                     .font(Theme.Fonts.titleSmall)
                                     .padding(.top, 10)
                                     .padding(.bottom, 10)
@@ -132,7 +134,8 @@ enum DatesEntry: Identifiable {
         let all = dates.keys.sorted().map { DatesEntry.dates($0, dates[$0] ?? []) }
             + sessions.map { DatesEntry.session($0) }
         return all.enumerated()
-            .sorted { ($0.element.sortDate, $0.offset) < ($1.element.sortDate, $1.offset) }
-            .map(\.element)
+            .map { (entry: $0.element, date: $0.element.sortDate, offset: $0.offset) }
+            .sorted { ($0.date, $0.offset) < ($1.date, $1.offset) }
+            .map(\.entry)
     }
 }

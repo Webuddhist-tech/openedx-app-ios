@@ -81,15 +81,16 @@ public struct CourseSessionBlock: Identifiable, Hashable, Sendable {
         ).day
     }
 
-    /// The Dates screen section the session belongs to. The ranges match the effective
-    /// boundaries of `Date.isThisWeek`, `isNextWeek` and `isUpcoming` used for course dates.
+    /// The Dates screen section the session belongs to. The ranges match where
+    /// `CourseDates.statusDatesBlocks` puts a course date later than midnight on the same day:
+    /// `Date.isThisWeek` ends at the start of day 8 and `isNextWeek` at the start of day 15.
     public func status(today: Date = Date(), calendar: Calendar = .current) -> CompletionStatus {
         guard let offset = dayOffset(from: today, calendar: calendar) else { return .upcoming }
         switch offset {
         case ..<0: return .past
         case 0: return .today
-        case 1...8: return .thisWeek
-        case 9...15: return .nextWeek
+        case 1...7: return .thisWeek
+        case 8...14: return .nextWeek
         default: return .upcoming
         }
     }
@@ -143,11 +144,11 @@ public struct CourseSessionBlock: Identifiable, Hashable, Sendable {
 
     // MARK: - Raw value helpers
 
-    private static var utcCalendar: Calendar {
+    private static let utcCalendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .current
         return calendar
-    }
+    }()
 
     /// Year, month and day of a "YYYY-MM-DD" string.
     static func dayComponents(_ value: String) -> DateComponents? {
@@ -163,19 +164,12 @@ public struct CourseSessionBlock: Identifiable, Hashable, Sendable {
         return parts[0] * 60 + parts[1]
     }
 
-    private static func formatter(template: String, locale: Locale) -> DateFormatter {
-        let formatter = DateFormatter()
-        formatter.calendar = utcCalendar
-        formatter.timeZone = utcCalendar.timeZone
-        formatter.locale = locale
-        formatter.setLocalizedDateFormatFromTemplate(template)
-        return formatter
-    }
-
     private static func formatDay(_ value: String, withYear: Bool, locale: Locale) -> String? {
         guard let components = dayComponents(value),
               let date = utcCalendar.date(from: components) else { return nil }
-        return formatter(template: withYear ? "MMMdyyyy" : "MMMd", locale: locale).string(from: date)
+        return SessionFormatterCache.shared
+            .formatter(template: withYear ? "MMMdyyyy" : "MMMd", locale: locale, calendar: utcCalendar)
+            .string(from: date)
     }
 
     private static func formatTime(_ value: String?, locale: Locale) -> String? {
@@ -184,6 +178,33 @@ public struct CourseSessionBlock: Identifiable, Hashable, Sendable {
                 year: 1970, month: 1, day: 1, hour: minutes / 60, minute: minutes % 60
               )) else { return nil }
         // "jmm" follows the locale's 12/24 h preference.
-        return formatter(template: "jmm", locale: locale).string(from: date)
+        return SessionFormatterCache.shared
+            .formatter(template: "jmm", locale: locale, calendar: utcCalendar)
+            .string(from: date)
+    }
+}
+
+/// Reuses the UTC date formatters for session text, which is built on every render of the
+/// Dates list. The key includes the hour cycle so a 12/24 h change in Settings is picked up.
+private final class SessionFormatterCache: @unchecked Sendable {
+    static let shared = SessionFormatterCache()
+
+    private let lock = NSLock()
+    private var formatters: [String: DateFormatter] = [:]
+
+    func formatter(template: String, locale: Locale, calendar: Calendar) -> DateFormatter {
+        let key = "\(template)|\(locale.identifier)|\(locale.hourCycle)"
+        lock.lock()
+        defer { lock.unlock() }
+        if let formatter = formatters[key] {
+            return formatter
+        }
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate(template)
+        formatters[key] = formatter
+        return formatter
     }
 }

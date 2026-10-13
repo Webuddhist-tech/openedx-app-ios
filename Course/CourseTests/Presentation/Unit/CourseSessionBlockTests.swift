@@ -112,6 +112,68 @@ final class CourseSessionBlockTests: XCTestCase {
         XCTAssertEqual(sessions[1].contentAvailableFrom, "2026-10-20")
     }
 
+    func testMalformedSessionIsSkipped() throws {
+        let json = """
+        {
+          "enabled": true,
+          "sessions": [
+            {"section_id": "a", "title": null, "start_date": "2026-10-12"},
+            {"section_id": "b", "title": "Day 2", "start_date": "2026-10-13"}
+          ]
+        }
+        """
+        let response = try JSONDecoder().decode(DataLayer.CourseSchedule.self, from: Data(json.utf8))
+        let sessions = response.domain(useRelativeDates: false)
+        XCTAssertEqual(sessions.map(\.id), ["b"])
+        XCTAssertEqual(sessions[0].endDate, "2026-10-13")
+        XCTAssertEqual(sessions[0].numDays, 1)
+    }
+
+    func testStatusMatchesCourseDatesOnTheSameDay() {
+        // A course date later than midnight on a day must land in the same section as a
+        // session on that day.
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        for days in 1...20 {
+            let day = calendar.date(byAdding: .day, value: days, to: today)!
+            let dueDate = calendar.date(byAdding: .hour, value: 10, to: day)!
+            let block = CourseDateBlock(
+                assignmentType: nil,
+                complete: false,
+                date: dueDate,
+                dateType: "event",
+                description: "",
+                learnerHasAccess: true,
+                link: "",
+                linkText: nil,
+                title: "Event",
+                extraInfo: nil,
+                firstComponentBlockID: "",
+                useRelativeDates: false
+            )
+            let dates = CourseDates(
+                datesBannerInfo: DatesBannerInfo(
+                    missedDeadlines: false,
+                    contentTypeGatingEnabled: false,
+                    missedGatedContent: false,
+                    verifiedUpgradeLink: nil,
+                    status: nil
+                ),
+                courseDateBlocks: [block],
+                hasEnded: false,
+                learnerIsFullAccess: true,
+                userTimezone: nil
+            )
+            let parts = calendar.dateComponents([.year, .month, .day], from: day)
+            let startDate = String(format: "%04d-%02d-%02d", parts.year!, parts.month!, parts.day!)
+            XCTAssertEqual(
+                dates.statusDatesBlocks.keys.first,
+                session(startDate: startDate).status(),
+                "day +\(days)"
+            )
+        }
+    }
+
     func testDisabledScheduleHasNoSessions() throws {
         let json = #"{"enabled": false, "timezone": "Asia/Kolkata", "sessions": []}"#
         let response = try JSONDecoder().decode(DataLayer.CourseSchedule.self, from: Data(json.utf8))
@@ -220,10 +282,10 @@ final class CourseSessionBlockTests: XCTestCase {
             ("2026-10-12", .past),
             ("2026-10-13", .today),
             ("2026-10-14", .thisWeek),
-            ("2026-10-21", .thisWeek),
-            ("2026-10-22", .nextWeek),
-            ("2026-10-28", .nextWeek),
-            ("2026-10-29", .upcoming)
+            ("2026-10-20", .thisWeek),
+            ("2026-10-21", .nextWeek),
+            ("2026-10-27", .nextWeek),
+            ("2026-10-28", .upcoming)
         ]
         for (startDate, expected) in cases {
             XCTAssertEqual(
