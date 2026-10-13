@@ -130,9 +130,10 @@ public struct CourseSessionBlock: Identifiable, Hashable, Sendable {
         return start + " – " + end
     }
 
-    /// The time and days joined with " · ", or nil when neither exists.
+    /// The days and time joined with " · ", e.g. "15 Oct 2026 · 8:30 am–11:30 am IST",
+    /// or nil when neither exists.
     public func whenText(locale: Locale = .current) -> String? {
-        let parts = [timeText(locale: locale), daysText(locale: locale)].compactMap { $0 }
+        let parts = [daysText(locale: locale), timeText(locale: locale)].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
