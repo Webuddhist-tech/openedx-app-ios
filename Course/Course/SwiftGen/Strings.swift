@@ -506,8 +506,6 @@ public enum CourseLocalization {
     public static func sessionInstructor(_ p1: Any) -> String {
       return CourseLocalization.tr("Localizable", "COURSE_DATES.SESSION_INSTRUCTOR", String(describing: p1), fallback: "Instructor: %@")
     }
-    /// Live session
-    public static let sessionLive = CourseLocalization.tr("Localizable", "COURSE_DATES.SESSION_LIVE", fallback: "Live session")
     /// Tools required: %@
     public static func sessionToolsRequired(_ p1: Any) -> String {
       return CourseLocalization.tr("Localizable", "COURSE_DATES.SESSION_TOOLS_REQUIRED", String(describing: p1), fallback: "Tools required: %@")

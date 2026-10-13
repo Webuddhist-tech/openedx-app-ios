@@ -130,6 +130,13 @@ public struct CourseSessionBlock: Identifiable, Hashable, Sendable {
         return start + " – " + end
     }
 
+    /// The days and time joined with " · ", e.g. "15 Oct 2026 · 8:30 am–11:30 am IST",
+    /// or nil when neither exists.
+    public func whenText(locale: Locale = .current) -> String? {
+        let parts = [daysText(locale: locale), timeText(locale: locale)].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     /// The content release date with year, e.g. "Oct 20, 2026".
     public func contentAvailableFromText(locale: Locale = .current) -> String? {
         guard let contentAvailableFrom else { return nil }

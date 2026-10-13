@@ -9,92 +9,58 @@ import SwiftUI
 import Core
 import Theme
 
-/// One scheduled section session on the Dates screen, shown as a card so it stands apart
-/// from course dates. Sessions are informational: no status badge, no link and no tap action.
+/// One scheduled section session on the Dates screen, shown as a compact card so it stands
+/// apart from course dates. Sessions are informational: no status badge, no link and no tap action.
 struct CourseSessionView: View {
     let session: CourseSessionBlock
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            liveTag
+        VStack(alignment: .leading, spacing: 3) {
             Text(session.title)
-                .font(Theme.Fonts.titleMedium)
+                .font(Theme.Fonts.titleSmall)
                 .foregroundStyle(Theme.Colors.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-            VStack(alignment: .leading, spacing: 4) {
-                if let days = session.daysText() {
-                    detailRow(icon: "calendar", text: days, isEmphasized: true)
-                }
-                if let time = session.timeText() {
-                    detailRow(icon: "clock", text: time, isEmphasized: true)
-                }
-                if !session.instructor.isEmpty {
-                    detailRow(icon: "person", text: session.instructor)
-                        .accessibilityLabel(CourseLocalization.CourseDates.sessionInstructor(session.instructor))
-                }
-                if !session.toolsRequired.isEmpty {
-                    detailRow(icon: "wrench.and.screwdriver", text: session.toolsRequired)
-                        .accessibilityLabel(
-                            CourseLocalization.CourseDates.sessionToolsRequired(session.toolsRequired)
-                        )
-                }
-                if let date = session.contentAvailableFromText() {
-                    detailRow(
-                        icon: "info.circle",
-                        text: CourseLocalization.CourseDates.sessionContentAvailableFrom(date)
-                    )
-                }
-            }
-            if !session.notes.isEmpty {
-                Divider()
-                    .overlay(Theme.Colors.cardViewStroke)
-                    .padding(.top, 2)
-                Text(session.notes)
-                    .font(Theme.Fonts.bodySmall)
-                    .foregroundStyle(Theme.Colors.textSecondary)
+            if let when = session.whenText() {
+                Text(when)
+                    .font(Theme.Fonts.labelMedium)
+                    .foregroundStyle(Theme.Colors.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            if !session.instructor.isEmpty {
+                detail(CourseLocalization.CourseDates.sessionInstructor(session.instructor))
+            }
+            if !session.toolsRequired.isEmpty {
+                detail(CourseLocalization.CourseDates.sessionToolsRequired(session.toolsRequired))
+            }
+            if let date = session.contentAvailableFromText() {
+                detail(CourseLocalization.CourseDates.sessionContentAvailableFrom(date))
+            }
+            if !session.notes.isEmpty {
+                detail(session.notes)
+                    .padding(.top, 3)
+            }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .fill(Theme.Colors.cardViewBackground)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .stroke(Theme.Colors.cardViewStroke, lineWidth: 1)
         )
-        .accessibilityElement(children: .contain)
-        .padding(.trailing, 15)
-        .padding(.bottom, 15)
-    }
-
-    private var liveTag: some View {
-        Label(CourseLocalization.CourseDates.sessionLive, systemImage: "dot.radiowaves.left.and.right")
-            .font(Theme.Fonts.labelSmall)
-            .foregroundStyle(Theme.Colors.accentColor)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(
-                Capsule().fill(Theme.Colors.accentColor.opacity(0.12))
-            )
-    }
-
-    private func detailRow(icon: String, text: String, isEmphasized: Bool = false) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 13))
-                .frame(width: 18)
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .accessibilityHidden(true)
-            Text(text)
-                .font(isEmphasized ? Theme.Fonts.labelLarge : Theme.Fonts.labelMedium)
-                .foregroundStyle(isEmphasized ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
         .accessibilityElement(children: .combine)
+        .padding(.trailing, 15)
+        .padding(.bottom, 12)
+    }
+
+    private func detail(_ text: String) -> some View {
+        Text(text)
+            .font(Theme.Fonts.labelMedium)
+            .foregroundStyle(Theme.Colors.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
