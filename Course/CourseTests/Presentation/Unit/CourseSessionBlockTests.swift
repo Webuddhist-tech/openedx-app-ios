@@ -31,7 +31,8 @@ final class CourseSessionBlockTests: XCTestCase {
         startTime: String? = "19:00",
         endTime: String? = "20:30",
         timezoneAbbr: String = "IST",
-        contentAvailableFrom: String? = nil
+        contentAvailableFrom: String? = nil,
+        useRelativeDates: Bool = false
     ) -> CourseSessionBlock {
         CourseSessionBlock(
             id: "block-v1:Sherab+DTIPC+2026+type@chapter+block@\(startDate)",
@@ -46,7 +47,7 @@ final class CourseSessionBlockTests: XCTestCase {
             toolsRequired: "",
             notes: "",
             contentAvailableFrom: contentAvailableFrom,
-            useRelativeDates: false
+            useRelativeDates: useRelativeDates
         )
     }
 
@@ -140,8 +141,24 @@ final class CourseSessionBlockTests: XCTestCase {
         XCTAssertEqual(session().timeText(locale: Locale(identifier: "en_GB")), "19:00–20:30 IST")
     }
 
-    func testSingleDayHasNoDaysText() {
+    func testSingleDayHasNoDaysTextWhenHeaderShowsTheDate() {
         XCTAssertNil(session().daysText(locale: locale))
+    }
+
+    func testSingleDayShowsItsDateWithRelativeDates() {
+        let relative = session(useRelativeDates: true)
+        XCTAssertEqual(relative.daysText(locale: locale), "Oct 12, 2026")
+        XCTAssertEqual(normalized(relative.whenText(locale: locale)), "7:00 PM–8:30 PM IST · Oct 12, 2026")
+    }
+
+    func testSingleDayWithoutTimeStillShowsItsDateWithRelativeDates() {
+        let relative = session(startTime: nil, endTime: nil, useRelativeDates: true)
+        XCTAssertEqual(relative.whenText(locale: locale), "Oct 12, 2026")
+    }
+
+    func testMultiDayTextIsTheSameWithRelativeDates() {
+        let multiDay = session(startDate: "2026-10-13", endDate: "2026-10-14", numDays: 2, useRelativeDates: true)
+        XCTAssertEqual(multiDay.daysText(locale: locale), "Oct 13 – Oct 14, 2026")
     }
 
     func testMultiDayTextPutsYearOnEndDate() {

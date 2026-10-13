@@ -115,10 +115,14 @@ public struct CourseSessionBlock: Identifiable, Hashable, Sendable {
         return text
     }
 
-    /// "Oct 13 – Oct 14, 2026" for a multi-day session, or nil for a single day.
+    /// "Oct 13 – Oct 14, 2026" for a multi-day session. A single day is "Oct 13, 2026" when
+    /// relative dates are on (the date header then reads "Tomorrow", "Thursday"...), and nil
+    /// otherwise because the header already shows the date.
     /// The end date carries the year; the start date does too when it is in another year.
     public func daysText(locale: Locale = .current) -> String? {
-        guard numDays > 1 else { return nil }
+        guard numDays > 1 else {
+            return useRelativeDates ? Self.formatDay(startDate, withYear: true, locale: locale) : nil
+        }
         let startsInOtherYear = startDate.prefix(4) != endDate.prefix(4)
         guard let start = Self.formatDay(startDate, withYear: startsInOtherYear, locale: locale),
               let end = Self.formatDay(endDate, withYear: true, locale: locale) else { return nil }
