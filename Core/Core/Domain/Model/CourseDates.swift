@@ -328,6 +328,7 @@ public enum BlockStatus: Sendable {
 public enum CompletionStatus: String, Sendable {
     case completed = "Completed"
     case pastDue = "Past Due"
+    case past = "Past"
     case today = "Today"
     case thisWeek = "This Week"
     case nextWeek = "Next Week"
@@ -339,6 +340,8 @@ public enum CompletionStatus: String, Sendable {
             return CoreLocalization.CourseDates.completed
         case .pastDue:
             return CoreLocalization.CourseDates.pastDue
+        case .past:
+            return CoreLocalization.CourseDates.past
         case .today:
             return CoreLocalization.CourseDates.today
         case .thisWeek:
