@@ -11,52 +11,47 @@ import Theme
 
 struct CourseUnitDropDownCell: View {
     var vertical: CourseVertical
-    var isLast: Bool = false
     var isSelected: Bool = false
     var action: () -> Void
-    private var idiom: UIUserInterfaceIdiom { UIDevice.current.userInterfaceIdiom }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Button(action: {
-                action()
-            }, label: {
-                HStack {
-                    Group {
-                        VStack {
-                            if vertical.completion == 1 {
-                                CoreAssets.finished.swiftUIImage
-                                    .renderingMode(.template)
-                                    .foregroundColor(Theme.Colors.accentXColor)
-                            }
-                        }
-                        .frame(width: 25)
-                        Text(vertical.displayName)
-                            .font(Theme.Fonts.titleSmall)
-                            .lineLimit(1)
-                            .frame(alignment: .leading)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        CourseVerticalImageView(blocks: vertical.childs)
-                    }
+        Button(action: action) {
+            HStack(spacing: 12) {
+                completionIndicator
+                Text(vertical.displayName)
+                    .font(isSelected ? Theme.Fonts.titleSmall : Theme.Fonts.bodyMedium)
                     .foregroundColor(Theme.Colors.textPrimary)
-                }
-            })
-            .padding(.horizontal, 20)
-            .padding(.vertical, 5)
-            if !isLast {
-                Divider()
-                    .frame(height: 1)
-                    .overlay(Theme.Colors.cardViewStroke)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 0)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                CourseVerticalImageView(blocks: vertical.childs)
+                    .foregroundColor(isSelected ? Theme.Colors.accentColor : Theme.Colors.textSecondary)
+                    .accessibilityHidden(true)
             }
+            .padding(.horizontal, 12)
+            .frame(minHeight: 48)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? Theme.Colors.accentColor.opacity(0.12) : Color.clear)
+            )
+            .contentShape(Rectangle())
         }
-        .padding(0)
-        .background(
-            isSelected ? Color.secondary.opacity(0.2) : Color.clear
-        )
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
 
+    @ViewBuilder
+    private var completionIndicator: some View {
+        if vertical.completion == 1 {
+            Image(systemName: "checkmark")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(Theme.Colors.white)
+                .frame(width: 22, height: 22)
+                .background(Circle().fill(Theme.Colors.accentColor))
+        } else {
+            Circle()
+                .stroke(Theme.Colors.cardViewStroke, lineWidth: 1.5)
+                .frame(width: 22, height: 22)
+        }
     }
 }
 
@@ -93,7 +88,6 @@ struct CourseUnitDropDownCell_Previews: PreviewProvider {
                
         CourseUnitDropDownCell(
             vertical: vertical,
-            isLast: false,
             isSelected: false,
             action: {}
         )

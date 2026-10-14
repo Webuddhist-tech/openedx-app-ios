@@ -92,6 +92,7 @@ public enum ThemeAssets {
   public static let textInputUnfocusedBackground = ColorAsset(name: "TextInputUnfocusedBackground")
   public static let textInputUnfocusedStroke = ColorAsset(name: "TextInputUnfocusedStroke")
   public static let toggleSwitchColor = ColorAsset(name: "ToggleSwitchColor")
+  public static let unitCanvasBackground = ColorAsset(name: "UnitCanvasBackground")
   public static let circleProgressBG = ColorAsset(name: "circleProgressBG")
   public static let navigationBarTintColor = ColorAsset(name: "navigationBarTintColor")
   public static let progressLineBG = ColorAsset(name: "progressLineBG")
