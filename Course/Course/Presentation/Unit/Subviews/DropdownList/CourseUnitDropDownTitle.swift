@@ -49,11 +49,14 @@ struct CourseUnitDropDownTitle: View {
                         .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(title)
+                    .accessibilityAddTraits(showDropdown ? [.isButton, .isSelected] : .isButton)
                 } else {
                     unitTitle
+                        .accessibilityAddTraits(.isHeader)
                 }
             }
-            .accessibilityElement(children: .combine)
         } else if isAvailable {
             Button {
                 if isAvailable {
@@ -85,7 +88,6 @@ struct CourseUnitDropDownTitle: View {
             .lineLimit(1)
             .font(Theme.Fonts.titleMedium)
             .foregroundColor(Theme.Colors.textPrimary)
-            .accessibilityAddTraits(.isHeader)
     }
 }
 

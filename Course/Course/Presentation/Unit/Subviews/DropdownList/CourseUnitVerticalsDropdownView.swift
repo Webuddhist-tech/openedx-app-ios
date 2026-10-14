@@ -12,6 +12,8 @@ struct CourseUnitVerticalsDropdownView: View {
     var verticals: [CourseVertical]
     var currentIndex: Int
     var offsetY: CGFloat
+    /// Height of the header above the content; everything below it is dimmed.
+    var dimmingTopInset: CGFloat = 0
     @Binding var showDropdown: Bool
     var action: (CourseVertical) -> Void
     
@@ -22,7 +24,7 @@ struct CourseUnitVerticalsDropdownView: View {
                 .overlay(alignment: .top) {
                     // Dim the content below the header so the list stands out.
                     Color.black.opacity(0.2)
-                        .padding(.top, max(offsetY - 10, 0))
+                        .padding(.top, dimmingTopInset)
                         .ignoresSafeArea(edges: .bottom)
                         .allowsHitTesting(false)
                 }

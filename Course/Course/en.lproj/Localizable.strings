@@ -18,6 +18,7 @@
 "COURSEWARE.PREVIOUS" = "Prev";
 "COURSEWARE.PREVIOUS_FULL" = "Previous";
 "COURSEWARE.FINISH" = "Finish";
+"COURSEWARE.BLOCK_POSITION" = "%@ of %@";
 "COURSEWARE.GOOD_WORK" = "Good job!";
 "COURSEWARE.BACK_TO_OUTLINE" = "Back to outline";
 "COURSEWARE.SECTION" = "You've completed “";

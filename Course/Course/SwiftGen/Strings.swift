@@ -307,6 +307,10 @@ public enum CourseLocalization {
   public enum Courseware {
     /// Back to outline
     public static let backToOutline = CourseLocalization.tr("Localizable", "COURSEWARE.BACK_TO_OUTLINE", fallback: "Back to outline")
+    /// %@ of %@
+    public static func blockPosition(_ p1: Any, _ p2: Any) -> String {
+      return CourseLocalization.tr("Localizable", "COURSEWARE.BLOCK_POSITION", String(describing: p1), String(describing: p2), fallback: "%@ of %@")
+    }
     /// Continue
     public static let `continue` = CourseLocalization.tr("Localizable", "COURSEWARE.CONTINUE", fallback: "Continue")
     /// Course content

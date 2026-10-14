@@ -40,6 +40,11 @@ public struct CourseUnitView: View {
 
     @State var currentBlock: CourseBlock?
 
+    // Measured at runtime so the layout follows Dynamic Type; initial values match the default text size.
+    @State private var captionHeaderHeight: CGFloat = 62
+    @State private var navigationButtonsHeight: CGFloat = 42
+    private let navigationButtonsBottomPadding: CGFloat = 50
+
     let isDropdownActive: Bool
     
     var sequenceTitle: String {
@@ -125,6 +130,7 @@ public struct CourseUnitView: View {
                     verticals: viewModel.verticals,
                     currentIndex: viewModel.verticalIndex,
                     offsetY: (isHorizontal ? landscapeTopSpacing : portraitTopSpacing) + captionHeaderExtraHeight,
+                    dimmingTopInset: topInsetHeight,
                     showDropdown: $showDropdown
                 ) { vertical in
                     let data = VerticalData.dataFor(blockId: vertical.childs.first?.id, in: viewModel.chapters)
@@ -155,28 +161,40 @@ public struct CourseUnitView: View {
 
     // MARK: - Content
 
-    // With dropdown navigation the subsection title is drawn as a caption above the unit title.
+    // The subsection title is drawn as a caption above the unit title. In video navigation
+    // mode the navigation bar shows the current video's name instead.
     private var showsCaptionHeader: Bool {
-        isDropdownActive && !viewModel.showVideoNavigation
+        !viewModel.showVideoNavigation
     }
 
-    // Extra room for the two-line caption header; scripts like Tibetan need taller lines.
-    private var captionHeaderExtraHeight: CGFloat {
-        showsCaptionHeader ? 14 : 0
+    private var captionHeaderTopPadding: CGFloat {
+        isHorizontal ? 10 : 4
+    }
+
+    private var baseTopInsetHeight: CGFloat {
+        isHorizontal ?
+        (viewModel.courseUnitProgressEnabled ? 78 : 75) :
+        (viewModel.courseUnitProgressEnabled ? 68 : 50)
     }
 
     private var topInsetHeight: CGFloat {
-        let base: CGFloat = isHorizontal ?
-        (viewModel.courseUnitProgressEnabled ? 78 : 75) :
-        (viewModel.courseUnitProgressEnabled ? 68 : 50)
-        return base + captionHeaderExtraHeight
+        guard showsCaptionHeader else { return baseTopInsetHeight }
+        // Leave a small gap between the measured caption header and the content.
+        return max(baseTopInsetHeight, captionHeaderHeight + 6)
+    }
+
+    private var captionHeaderExtraHeight: CGFloat {
+        topInsetHeight - baseTopInsetHeight
     }
 
     // Each page is as tall as the reader but starts below the top inset, so its last
     // `topInsetHeight` points are off screen; in portrait the card also has to clear
     // the floating navigation buttons.
     private var webCardBottomPadding: CGFloat {
-        topInsetHeight + (isHorizontal ? 16 : 108)
+        let navigationClearance = isHorizontal
+        ? 16
+        : navigationButtonsBottomPadding + navigationButtonsHeight + 16
+        return topInsetHeight + navigationClearance
     }
 
     private func topInset(reader: GeometryProxy) -> some View {
@@ -192,18 +210,12 @@ public struct CourseUnitView: View {
         UnitStack(isVerticalNavigation: !isHorizontalNavigation, alignment: alignment, spacing: 0) {
             let data = Array(viewModel.verticals[viewModel.verticalIndex].childs.enumerated())
             ForEach(data, id: \.offset) {index, block in
+                let lessonType = LessonType.from(block, streamingQuality: viewModel.streamingQuality)
+                let header = blockHeader(block: block, index: index)
                 VStack(spacing: 0) {
-                    // Web blocks draw these dashes inside their card.
-                    if showsStandaloneProgressDashes(for: block, total: data.count) {
-                        UnitProgressDashes(position: index + 1, total: data.count)
-                            .padding(.horizontal, 16)
-                            .padding(.top, 8)
-                            .padding(.bottom, 4)
-                            .frameLimit(width: reader.size.width)
-                    }
-
-                    if isDropdownActive {
-                        videoTitle(block: block, index: index, width: reader.size.width)
+                    // Blocks shown in a web card draw the dashes and header inside the card.
+                    if !rendersWebCard(lessonType) && !viewModel.courseUnitProgressEnabled {
+                        standaloneBlockHeader(header, lessonType: lessonType, width: reader.size.width)
                     }
 
                     if viewModel.showVideoNavigation {
@@ -222,7 +234,7 @@ public struct CourseUnitView: View {
                         }
                     }
 
-                    contentView(for: block, index: index, reader: reader)
+                    contentView(for: block, lessonType: lessonType, index: index, reader: reader)
                         .onChange(of: viewModel.allVideosForNavigation) { _ in
                             if let currentBlock {
                                 let index = self.viewModel.allVideosForNavigation.firstIndex(of: currentBlock)
@@ -262,8 +274,13 @@ public struct CourseUnitView: View {
     }
 
     @ViewBuilder
-    private func contentView(for block: CourseBlock, index: Int, reader: GeometryProxy) -> some View {
-        switch LessonType.from(block, streamingQuality: viewModel.streamingQuality) {
+    private func contentView(
+        for block: CourseBlock,
+        lessonType: LessonType,
+        index: Int,
+        reader: GeometryProxy
+    ) -> some View {
+        switch lessonType {
         // MARK: YouTube
         case let .youtube(url, blockID):
             youtubeView(
@@ -418,16 +435,33 @@ public struct CourseUnitView: View {
         }
     }
 
-    private func showsStandaloneProgressDashes(for block: CourseBlock, total: Int) -> Bool {
-        guard total > 1, !viewModel.courseUnitProgressEnabled else { return false }
-        if case .web = LessonType.from(block, streamingQuality: viewModel.streamingQuality) {
-            return false
-        }
-        return true
+    /// Mirrors `webView(...)`: web blocks get the card unless they're offline and not downloaded.
+    private func rendersWebCard(_ lessonType: LessonType) -> Bool {
+        guard case let .web(_, _, blockId, _) = lessonType else { return false }
+        return viewModel.connectivity.isInternetAvaliable || webURLs[blockId] != nil
     }
 
-    private func webViewHeader(block: CourseBlock, index: Int) -> WebViewHeader {
-        WebViewHeader(
+    @ViewBuilder
+    private func standaloneBlockHeader(_ header: UnitBlockHeader, lessonType: LessonType, width: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            if header.total > 1 {
+                UnitProgressDashes(header: header)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+            }
+            // Discussions show their own title, and in video navigation mode the
+            // navigation bar already shows the current video's name.
+            if case .discussion = lessonType {
+            } else if !viewModel.showVideoNavigation {
+                UnitBlockHeaderView(header: header)
+            }
+        }
+        .frameLimit(width: width)
+    }
+
+    private func blockHeader(block: CourseBlock, index: Int) -> UnitBlockHeader {
+        UnitBlockHeader(
             title: block.displayName,
             icon: block.type.unitHeaderIcon,
             position: index + 1,
@@ -453,8 +487,7 @@ public struct CourseUnitView: View {
                         localUrl: nil,
                         injections: injections,
                         blockID: block.id,
-                        roundedBackgroundEnabled: !viewModel.courseUnitProgressEnabled,
-                        header: webViewHeader(block: block, index: index),
+                        header: viewModel.courseUnitProgressEnabled ? nil : blockHeader(block: block, index: index),
                         bottomPadding: webCardBottomPadding
                     )
                 } else if let offlineURL = webURLs[blockId] {
@@ -463,8 +496,7 @@ public struct CourseUnitView: View {
                         localUrl: offlineURL?.absoluteString,
                         injections: injections,
                         blockID: block.id,
-                        roundedBackgroundEnabled: !viewModel.courseUnitProgressEnabled,
-                        header: webViewHeader(block: block, index: index),
+                        header: viewModel.courseUnitProgressEnabled ? nil : blockHeader(block: block, index: index),
                         bottomPadding: webCardBottomPadding
                     )
                 } else {
@@ -550,15 +582,6 @@ public struct CourseUnitView: View {
         return CGPoint(x: x, y: y)
     }
     
-    private func videoTitle(block: CourseBlock, index: Int, width: CGFloat) -> some View {
-        HStack {
-            if block.type == .video {
-                UnitBlockHeaderView(header: webViewHeader(block: block, index: index))
-            }
-        }
-        .frameLimit(width: width)
-    }
-
     // MARK: - Course Navigation
 
     private var courseNavigation: some View {
@@ -584,16 +607,30 @@ public struct CourseUnitView: View {
                 .padding(.top, isHorizontal ? 10 : 0)
                 .padding(.leading, isHorizontal ? -16 : 0)
 
-                if isDropdownActive {
+                if isDropdownActive && !showsCaptionHeader {
                     CourseUnitDropDownTitle(
                         title: unitTitle,
-                        caption: showsCaptionHeader ? sequenceTitle : nil,
                         isAvailable: isDropdownAvailable,
                         showDropdown: $showDropdown
                     )
-                    // Use most of the extra header height so the taller text grows away from the back button.
-                    .padding(.bottom, showsCaptionHeader ? 4 - (captionHeaderExtraHeight - 2) : 0)
                     .padding(.horizontal, 48)
+                }
+            }
+            .overlay(alignment: .top) {
+                if showsCaptionHeader {
+                    CourseUnitDropDownTitle(
+                        title: unitTitle,
+                        caption: sequenceTitle,
+                        isAvailable: isDropdownActive && isDropdownAvailable,
+                        showDropdown: $showDropdown
+                    )
+                    .padding(.horizontal, 48)
+                    .padding(.top, captionHeaderTopPadding)
+                    .background(
+                        GeometryReader { proxy in
+                            Color.clear.preference(key: CaptionHeaderHeightKey.self, value: proxy.size.height)
+                        }
+                    )
                 }
             }
             .background(
@@ -604,6 +641,7 @@ public struct CourseUnitView: View {
             .padding(.trailing, isHorizontal ? 215 : 0)
             Spacer()
         }
+        .onPreferenceChange(CaptionHeaderHeightKey.self) { captionHeaderHeight = $0 }
     }
 
     private var courseNavigationView: some View {
@@ -619,13 +657,33 @@ public struct CourseUnitView: View {
                     viewModel: viewModel,
                     playerStateSubject: playerStateSubject
                 )
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(key: NavigationButtonsHeightKey.self, value: proxy.size.height)
+                    }
+                )
                 if isHorizontal {
                     Spacer()
                 }
             }
-            .padding(.bottom, isHorizontal ? 0 : 50)
+            .padding(.bottom, isHorizontal ? 0 : navigationButtonsBottomPadding)
             .padding(.top, isHorizontal ? 12 : 0)
         }
+        .onPreferenceChange(NavigationButtonsHeightKey.self) { navigationButtonsHeight = $0 }
+    }
+}
+
+private struct CaptionHeaderHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct NavigationButtonsHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 
