@@ -7,6 +7,7 @@
 
 import XCTest
 import Alamofire
+import Combine
 import SwiftyMocky
 @testable import Core
 @testable import Course
@@ -532,5 +533,170 @@ final class CourseDateViewModelTests: XCTestCase {
         XCTAssertEqual(BlockStatus.status(of: "verified-upgrade-deadline"), .verifiedUpgradeDeadline, "Incorrect mapping for 'verified-upgrade-deadline'")
         XCTAssertEqual(BlockStatus.status(of: "assignment-due-date"), .assignment, "Incorrect mapping for 'assignment-due-date'")
         XCTAssertEqual(BlockStatus.status(of: ""), .event, "Incorrect mapping for 'event'")
+    }
+
+    // MARK: - Section schedule
+
+    private func makeViewModel(interactor: CourseInteractorProtocolMock) -> CourseDatesViewModel {
+        CourseDatesViewModel(
+            interactor: interactor,
+            router: CourseRouterMock(),
+            cssInjector: CSSInjectorMock(),
+            connectivity: ConnectivityProtocolMock(),
+            config: ConfigMock(),
+            courseID: "1",
+            courseName: "a",
+            analytics: CourseAnalyticsMock(),
+            calendarManager: CalendarManagerMock()
+        )
+    }
+
+    private func session(daysFromToday days: Int) -> CourseSessionBlock {
+        let day = Calendar.current.date(byAdding: .day, value: days, to: Date())!
+        let parts = Calendar.current.dateComponents([.year, .month, .day], from: day)
+        let startDate = String(format: "%04d-%02d-%02d", parts.year!, parts.month!, parts.day!)
+        return CourseSessionBlock(
+            id: "section-\(days)",
+            title: "Session \(days)",
+            startDate: startDate,
+            endDate: startDate,
+            numDays: 1,
+            startTime: "19:00",
+            endTime: "20:30",
+            timezoneAbbr: "IST",
+            instructor: "",
+            toolsRequired: "",
+            notes: "",
+            contentAvailableFrom: nil,
+            useRelativeDates: false
+        )
+    }
+
+    func testGetCourseSessionsFailureShowsNoSessionsAndNoError() async {
+        let interactor = CourseInteractorProtocolMock()
+        Given(interactor, .getCourseSchedule(courseID: .any, willThrow: NSError(domain: "error", code: 404)))
+        let viewModel = makeViewModel(interactor: interactor)
+
+        await viewModel.getCourseSessions(courseID: "1")
+
+        Verify(interactor, .getCourseSchedule(courseID: .value("1")))
+        XCTAssertTrue(viewModel.courseSessions.isEmpty)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertFalse(viewModel.showError)
+        XCTAssertFalse(viewModel.hasDatesContent)
+        XCTAssertFalse(viewModel.isLoadingSessions)
+    }
+
+    func testFailedRefreshKeepsLoadedSessions() async {
+        let interactor = CourseInteractorProtocolMock()
+        Given(interactor, .getCourseSchedule(courseID: .any, willThrow: NSError(domain: "error", code: -1009)))
+        let viewModel = makeViewModel(interactor: interactor)
+        viewModel.courseSessions = [session(daysFromToday: 1)]
+
+        await viewModel.getCourseSessions(courseID: "1")
+
+        XCTAssertEqual(viewModel.courseSessions.map(\.id), ["section-1"])
+        XCTAssertEqual(viewModel.sessionsByStatus.values.flatMap { $0 }.map(\.id), ["section-1"])
+        XCTAssertFalse(viewModel.isLoadingSessions)
+    }
+
+    func testShiftDatesNotificationFromDatesScreenRefreshesSessions() async {
+        let interactor = CourseInteractorProtocolMock()
+        let refreshed = expectation(description: "schedule reloaded")
+        Given(interactor, .getCourseSchedule(courseID: .any, willReturn: []))
+        Given(interactor, .getCourseDates(courseID: .any, willThrow: NSError(domain: "error", code: -1)))
+        Perform(interactor, .getCourseSchedule(courseID: .value("1"), perform: { _ in refreshed.fulfill() }))
+        let viewModel = makeViewModel(interactor: interactor)
+
+        // The Dates screen posts the course ID together with the course name.
+        let object: (String, String) = ("1", "a")
+        NotificationCenter.default.post(name: .shiftCourseDates, object: object)
+
+        await fulfillment(of: [refreshed], timeout: 2)
+        withExtendedLifetime(viewModel) {}
+    }
+
+    func testDatesNotificationForAnotherCourseIsIgnored() async throws {
+        let interactor = CourseInteractorProtocolMock()
+        Given(interactor, .getCourseSchedule(courseID: .any, willReturn: []))
+        Given(interactor, .getCourseDates(courseID: .any, willThrow: NSError(domain: "error", code: -1)))
+        let viewModel = makeViewModel(interactor: interactor)
+
+        let otherCourseID: String = "another-course"
+        NotificationCenter.default.post(name: .getCourseDates, object: otherCourseID)
+        try await Task.sleep(nanoseconds: 200_000_000)
+
+        Verify(interactor, 0, .getCourseSchedule(courseID: .any))
+        Verify(interactor, 0, .getCourseDates(courseID: .any))
+        withExtendedLifetime(viewModel) {}
+    }
+
+    func testGetCourseSessionsGroupsSessionsIntoSections() async {
+        let interactor = CourseInteractorProtocolMock()
+        let sessions = [
+            session(daysFromToday: -3),
+            session(daysFromToday: 0),
+            session(daysFromToday: 7),
+            session(daysFromToday: 30)
+        ]
+        Given(interactor, .getCourseSchedule(courseID: .any, willReturn: sessions))
+        let viewModel = makeViewModel(interactor: interactor)
+
+        await viewModel.getCourseSessions(courseID: "1")
+
+        XCTAssertEqual(viewModel.courseSessions.count, 4)
+        XCTAssertTrue(viewModel.hasDatesContent)
+        // A week from today is always next calendar week; this week's coverage is in
+        // CourseSessionBlockTests, which fixes the weekday.
+        XCTAssertEqual(viewModel.sortedStatuses, [.past, .today, .nextWeek, .upcoming])
+        XCTAssertNil(viewModel.sessionsByStatus[.completed])
+        XCTAssertNil(viewModel.sessionsByStatus[.pastDue])
+        XCTAssertEqual(viewModel.sessionsByStatus[.past]?.map(\.id), ["section--3"])
+        XCTAssertEqual(viewModel.sessionsByStatus[.today]?.map(\.id), ["section-0"])
+        XCTAssertTrue(viewModel.isShowProgress, "Loading sessions must not change the dates progress state")
+    }
+
+    func testSectionsGroupDatesAndSessionsAgainstTheSameNow() {
+        let viewModel = makeViewModel(interactor: CourseInteractorProtocolMock())
+        let calendar = Calendar.current
+        let now = Date()
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!
+        let dueTomorrow = calendar.date(byAdding: .hour, value: 10, to: tomorrow)!
+        viewModel.courseDates = CourseDates(
+            datesBannerInfo: DatesBannerInfo(
+                missedDeadlines: false, contentTypeGatingEnabled: false, missedGatedContent: false,
+                verifiedUpgradeLink: nil, status: nil
+            ),
+            courseDateBlocks: [
+                CourseDateBlock(
+                    assignmentType: nil, complete: false, date: dueTomorrow, dateType: "assignment-due-date",
+                    description: "", learnerHasAccess: true, link: "", linkText: nil, title: "Quiz",
+                    extraInfo: nil, firstComponentBlockID: "", useRelativeDates: false
+                )
+            ],
+            hasEnded: false, learnerIsFullAccess: true, userTimezone: nil
+        )
+        viewModel.courseSessions = [session(daysFromToday: 1), session(daysFromToday: -1)]
+
+        let sections = viewModel.sections(now: now)
+
+        XCTAssertEqual(sections.first?.status, .past)
+        XCTAssertEqual(sections.first?.sessions.map(\.id), ["section--1"])
+        // Tomorrow's assignment and session share one section, whichever week it falls in.
+        XCTAssertEqual(sections.count, 2)
+        XCTAssertEqual(sections.last?.dates.keys.sorted(), [dueTomorrow])
+        XCTAssertEqual(sections.last?.sessions.map(\.id), ["section-1"])
+    }
+
+    func testDayChangeRedrawsTheDatesScreen() async {
+        let viewModel = makeViewModel(interactor: CourseInteractorProtocolMock())
+        let redrawn = expectation(description: "view model announced a change")
+        redrawn.assertForOverFulfill = false
+        let subscription = viewModel.objectWillChange.sink { _ in redrawn.fulfill() }
+
+        NotificationCenter.default.post(name: .NSCalendarDayChanged, object: nil)
+
+        await fulfillment(of: [redrawn], timeout: 2)
+        subscription.cancel()
     }
 }

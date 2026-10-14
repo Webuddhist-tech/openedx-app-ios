@@ -30,6 +30,7 @@ fileprivate extension CompletionStatus {
     var foregroundColor: Color {
         switch self {
         case .pastDue: return Theme.Colors.pastDueTimelineColor
+        case .past: return Color.gray.opacity(0.4)
         case .today: return Theme.Colors.todayTimelineColor
         case .thisWeek: return Theme.Colors.thisWeekTimelineColor
         case .nextWeek: return Theme.Colors.nextWeekTimelineColor

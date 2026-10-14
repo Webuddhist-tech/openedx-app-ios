@@ -25,6 +25,7 @@ public protocol CourseRepositoryProtocol: Sendable {
     func loadLocalVideoProgress(blockID: String) async -> Double?
     func getCourseProgress(courseID: String) async throws -> CourseProgressDetails
     func getCourseProgressOffline(courseID: String) async throws -> CourseProgressDetails
+    func getCourseSchedule(courseID: String) async throws -> [CourseSessionBlock]
 }
 
 public actor CourseRepository: CourseRepositoryProtocol {
@@ -121,7 +122,13 @@ public actor CourseRepository: CourseRepositoryProtocol {
     public func getCourseDatesOffline(courseID: String) async throws -> CourseDates {
         return try await persistence.loadCourseDates(courseID: courseID)
     }
-    
+
+    public func getCourseSchedule(courseID: String) async throws -> [CourseSessionBlock] {
+        return try await api.requestData(
+            CourseEndpoint.getCourseSchedule(courseID: courseID)
+        ).mapResponse(DataLayer.CourseSchedule.self).domain(useRelativeDates: coreStorage.useRelativeDates)
+    }
+
     public func getCourseProgress(courseID: String) async throws -> CourseProgressDetails {
         let courseProgress = try await api.requestData(
             CourseEndpoint.getCourseProgress(courseID: courseID)
@@ -371,7 +378,11 @@ class CourseRepositoryMock: CourseRepositoryProtocol {
     func getCourseDatesOffline(courseID: String) async throws -> CourseDates {
         throw NoCachedDataError()
     }
-    
+
+    func getCourseSchedule(courseID: String) async throws -> [CourseSessionBlock] {
+        return []
+    }
+
     func getCourseProgress(courseID: String) async throws -> CourseProgressDetails {
         return CourseProgressDetails(
             verifiedMode: "verified",

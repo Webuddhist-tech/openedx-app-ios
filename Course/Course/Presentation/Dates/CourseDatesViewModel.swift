@@ -24,6 +24,10 @@ public class CourseDatesViewModel: ObservableObject {
     @Published var isShowProgress = true
     @Published var showError: Bool = false
     @Published var courseDates: CourseDates?
+    @Published var courseSessions: [CourseSessionBlock] = []
+    /// True while the first schedule request is in flight, so a course with only sessions
+    /// keeps its spinner instead of flashing the "no dates" state.
+    @Published private(set) var isLoadingSessions = false
     @Published var isOn: Bool = false
     @Published var eventState: EventState?
 
@@ -45,7 +49,8 @@ public class CourseDatesViewModel: ObservableObject {
     var courseStructure: CourseStructure?
     let analytics: CourseAnalytics
     let calendarManager: CalendarManagerProtocol
-    
+    private var sessionsRequestID = 0
+
     public init(
         interactor: CourseInteractorProtocol,
         router: CourseRouter,
@@ -69,22 +74,74 @@ public class CourseDatesViewModel: ObservableObject {
         addObservers()
     }
         
-    var sortedStatuses: [CompletionStatus] {
-        let desiredSequence = [
-            CompletionStatus.completed,
-            CompletionStatus.pastDue,
-            CompletionStatus.today,
-            CompletionStatus.thisWeek,
-            CompletionStatus.nextWeek,
-            CompletionStatus.upcoming
-        ]
-        
-        // Filter out keys that don't exist in the dictionary
-        let filteredKeys = desiredSequence.filter {
-            courseDates?.statusDatesBlocks.keys.contains($0) ?? false }
-        return filteredKeys
+    /// One heading on the Dates screen with its course dates and sessions.
+    struct DatesSection: Identifiable {
+        let status: CompletionStatus
+        let dates: [Date: [CourseDateBlock]]
+        let sessions: [CourseSessionBlock]
+
+        var id: CompletionStatus { status }
     }
-    
+
+    /// The non-empty sections in display order. Course dates and sessions are grouped
+    /// together against the same `now`, once per call, so they always agree on the day
+    /// and week. Sessions are informational: never `.completed`, and past ones go under `.past`.
+    func sections(now: Date = Date()) -> [DatesSection] {
+        let desiredSequence: [CompletionStatus] = [
+            .completed, .pastDue, .past, .today, .thisWeek, .nextWeek, .upcoming
+        ]
+        let datesByStatus = courseDates?.statusDatesBlocks(now: now) ?? [:]
+        let sessionsByStatus = Self.groupByStatus(courseSessions, now: now)
+        return desiredSequence.compactMap { status in
+            let dates = datesByStatus[status] ?? [:]
+            let sessions = sessionsByStatus[status] ?? []
+            guard !dates.isEmpty || !sessions.isEmpty else { return nil }
+            return DatesSection(status: status, dates: dates, sessions: sessions)
+        }
+    }
+
+    var sortedStatuses: [CompletionStatus] {
+        sections().map(\.status)
+    }
+
+    var sessionsByStatus: [CompletionStatus: [CourseSessionBlock]] {
+        Self.groupByStatus(courseSessions, now: Date())
+    }
+
+    private static func groupByStatus(
+        _ sessions: [CourseSessionBlock],
+        now: Date
+    ) -> [CompletionStatus: [CourseSessionBlock]] {
+        Dictionary(grouping: sessions) { $0.status(today: now) }
+    }
+
+    var hasDatesContent: Bool {
+        !(courseDates?.courseDateBlocks.isEmpty ?? true) || !courseSessions.isEmpty
+    }
+
+    /// Loads the section schedule. It is optional: any failure (not enrolled, plugin not
+    /// installed, server or network error) means no new sessions, and it never touches
+    /// the dates, the progress indicator or the error message. A failed refresh keeps the
+    /// sessions already shown, and only the most recent request may update them.
+    @MainActor
+    func getCourseSessions(courseID: String) async {
+        sessionsRequestID += 1
+        let requestID = sessionsRequestID
+        isLoadingSessions = courseSessions.isEmpty
+        defer {
+            if requestID == sessionsRequestID {
+                isLoadingSessions = false
+            }
+        }
+        do {
+            let sessions = try await interactor.getCourseSchedule(courseID: courseID)
+            guard requestID == sessionsRequestID else { return }
+            courseSessions = sessions
+        } catch {
+            debugLog("Course schedule unavailable: \(error.localizedDescription)")
+        }
+    }
+
     @MainActor
     func getCourseDates(courseID: String) async {
         isShowProgress = true
@@ -180,21 +237,55 @@ extension CourseDatesViewModel {
             selector: #selector(getCourseDates),
             name: .getCourseDates, object: nil
         )
+
+        // Sections depend on today's date, so redraw when the day changes (midnight, or a
+        // time zone or clock change) while the screen is open.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDayChanged),
+            name: .NSCalendarDayChanged, object: nil
+        )
     }
-    
-    @objc private func getCourseDates(_ notification: Notification) {
-        Task {
-            await getCourseDates(courseID: courseID)
+
+    @objc private func handleDayChanged(_ notification: Notification) {
+        Task { @MainActor [weak self] in
+            self?.objectWillChange.send()
         }
     }
     
-    @objc private func handleShiftDueDates(_ notification: Notification) {
+    /// The course a dates notification is for. `.shiftCourseDates` is posted with the course
+    /// ID alone from the course container and with `(courseID, courseName)` from this screen.
+    private func notificationCourseID(_ notification: Notification) -> String? {
         if let courseID = notification.object as? String {
-            Task {
-                await getCourseDates(courseID: courseID)
-                await MainActor.run { [weak self] in
-                    self?.eventState = .shiftedDueDates
-                }
+            return courseID
+        }
+        if let (courseID, _) = notification.object as? (String, String) {
+            return courseID
+        }
+        return nil
+    }
+
+    @objc private func getCourseDates(_ notification: Notification) {
+        if let notifiedID = notificationCourseID(notification), notifiedID != courseID {
+            return
+        }
+        Task {
+            await getCourseDates(courseID: courseID)
+        }
+        Task {
+            await getCourseSessions(courseID: courseID)
+        }
+    }
+
+    @objc private func handleShiftDueDates(_ notification: Notification) {
+        guard let courseID = notificationCourseID(notification), courseID == self.courseID else { return }
+        Task {
+            await getCourseSessions(courseID: courseID)
+        }
+        Task {
+            await getCourseDates(courseID: courseID)
+            await MainActor.run { [weak self] in
+                self?.eventState = .shiftedDueDates
             }
         }
     }

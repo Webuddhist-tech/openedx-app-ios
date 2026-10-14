@@ -15,31 +15,35 @@ public struct CourseDates: Sendable {
     public let userTimezone: String?
     
     public var statusDatesBlocks: [CompletionStatus: [Date: [CourseDateBlock]]] {
+        statusDatesBlocks(now: Date())
+    }
+
+    /// The blocks grouped into the Dates screen sections, with `now` and `calendar`
+    /// injectable for tests. Sections come from `Date.dateSection`, which section schedule
+    /// sessions use too, so both land under the same headings.
+    public func statusDatesBlocks(
+        now: Date,
+        calendar: Calendar = .current
+    ) -> [CompletionStatus: [Date: [CourseDateBlock]]] {
         var statusDatesBlocks: [CompletionStatus: [Date: [CourseDateBlock]]] = [:]
         var statusBlocks: [CompletionStatus: [CourseDateBlock]] = [:]
-        
+
         for block in courseDateBlocks {
             let date = block.date
-            switch true {
-            case block.complete ?? false || block.blockStatus == .courseStartDate:
-                statusBlocks[.completed, default: []].append(block)
-            case date.isInPast:
-                statusBlocks[.pastDue, default: []].append(block)
-            case date.isToday:
-                if date < Date() {
-                    statusBlocks[.pastDue, default: []].append(block)
-                } else {
-                    statusBlocks[.today, default: []].append(block)
+            let status: CompletionStatus
+            if block.complete ?? false || block.blockStatus == .courseStartDate {
+                status = .completed
+            } else {
+                switch date.dateSection(today: now, calendar: calendar) {
+                case .past:
+                    status = .pastDue
+                case .today:
+                    status = date < now ? .pastDue : .today
+                case let section:
+                    status = section
                 }
-            case date.isThisWeek:
-                statusBlocks[.thisWeek, default: []].append(block)
-            case date.isNextWeek:
-                statusBlocks[.nextWeek, default: []].append(block)
-            case date.isUpcoming:
-                statusBlocks[.upcoming, default: []].append(block)
-            default:
-                statusBlocks[.upcoming, default: []].append(block)
             }
+            statusBlocks[status, default: []].append(block)
         }
         
         for status in statusBlocks.keys {
@@ -119,27 +123,45 @@ public extension Date {
         return Date.compare(self, to: .today) == .orderedDescending
     }
     
+    // "This week" and "Next week" are calendar weeks of the device calendar, which follows
+    // the locale's first weekday (Sunday or Monday), not rolling 7-day windows.
+
     var isThisWeek: Bool {
-        // Items due within the next 7 days (7*24 hours from now)
-        let calendar = Calendar.current
-        let nextDay = calendar.date(byAdding: .day, value: 1, to: .today) ?? .distantPast
-        let nextSeventhDay = calendar.date(byAdding: .day, value: 8, to: .today) ?? .distantPast
-        return (nextDay...nextSeventhDay).contains(self)
+        // After today, up to the end of the current week
+        return dateSection() == .thisWeek
     }
-    
+
     var isNextWeek: Bool {
-        // Items due within the next 14 days (14*24 hours from now)
-        let calendar = Calendar.current
-        let nextEighthDay = calendar.date(byAdding: .day, value: 8, to: .today) ?? .distantPast
-        let nextFourteenthDay = calendar.date(byAdding: .day, value: 15, to: .today) ?? .distantPast
-        return (nextEighthDay...nextFourteenthDay).contains(self)
+        // Anywhere in the following calendar week
+        return dateSection() == .nextWeek
     }
-    
+
     var isUpcoming: Bool {
-        // Items due after the next 14 days (14*24 hours from now)
-        let calendar = Calendar.current
-        let nextFourteenthDay = calendar.date(byAdding: .day, value: 14, to: .today) ?? .distantPast
-        return Date.compare(self, to: nextFourteenthDay) == .orderedDescending
+        // After the end of next week
+        return dateSection() == .upcoming
+    }
+
+    /// The Dates screen section of this date's calendar day relative to `today`: `.past` for
+    /// an earlier day, `.today`, or by calendar week `.thisWeek`, `.nextWeek` and `.upcoming`.
+    /// Callers decide how past items are shown (course dates use "Past due").
+    func dateSection(today: Date = Date(), calendar: Calendar = .current) -> CompletionStatus {
+        let day = calendar.startOfDay(for: self)
+        let startOfToday = calendar.startOfDay(for: today)
+        if day < startOfToday { return .past }
+        if day == startOfToday { return .today }
+        switch weeksFromCurrentWeek(today: today, calendar: calendar) ?? 2 {
+        case ...0: return .thisWeek
+        case 1: return .nextWeek
+        default: return .upcoming
+        }
+    }
+
+    /// Whole calendar weeks from the week containing `today` to the week containing this
+    /// date: 0 for the current week, 1 for next week, negative for earlier weeks.
+    func weeksFromCurrentWeek(today: Date = Date(), calendar: Calendar = .current) -> Int? {
+        guard let currentWeek = calendar.dateInterval(of: .weekOfYear, for: today),
+              let dateWeek = calendar.dateInterval(of: .weekOfYear, for: self) else { return nil }
+        return calendar.dateComponents([.weekOfYear], from: currentWeek.start, to: dateWeek.start).weekOfYear
     }
 }
 
@@ -328,6 +350,7 @@ public enum BlockStatus: Sendable {
 public enum CompletionStatus: String, Sendable {
     case completed = "Completed"
     case pastDue = "Past Due"
+    case past = "Past"
     case today = "Today"
     case thisWeek = "This Week"
     case nextWeek = "Next Week"
@@ -339,6 +362,8 @@ public enum CompletionStatus: String, Sendable {
             return CoreLocalization.CourseDates.completed
         case .pastDue:
             return CoreLocalization.CourseDates.pastDue
+        case .past:
+            return CoreLocalization.CourseDates.past
         case .today:
             return CoreLocalization.CourseDates.today
         case .thisWeek:

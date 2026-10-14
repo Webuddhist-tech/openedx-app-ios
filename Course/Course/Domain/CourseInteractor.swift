@@ -21,6 +21,7 @@ public protocol CourseInteractorProtocol: Sendable {
     func resumeBlock(courseID: String) async throws -> ResumeBlock
     func getSubtitles(url: String, selectedLanguage: String) async throws -> [Subtitle]
     func getCourseDates(courseID: String) async throws -> CourseDates
+    func getCourseSchedule(courseID: String) async throws -> [CourseSessionBlock]
     func getCourseDeadlineInfo(courseID: String) async throws -> CourseDateBanner
     func shiftDueDates(courseID: String) async throws
     func updateLocalVideoProgress(blockID: String, progress: Double) async
@@ -223,7 +224,11 @@ public actor CourseInteractor: CourseInteractorProtocol, CourseStructureManagerP
     public func getCourseDates(courseID: String) async throws -> CourseDates {
         return try await repository.getCourseDates(courseID: courseID)
     }
-    
+
+    public func getCourseSchedule(courseID: String) async throws -> [CourseSessionBlock] {
+        return try await repository.getCourseSchedule(courseID: courseID)
+    }
+
     public func getCourseDeadlineInfo(courseID: String) async throws -> CourseDateBanner {
         return try await repository.getCourseDeadlineInfo(courseID: courseID)
     }

@@ -498,6 +498,18 @@ public enum CourseLocalization {
     }
     /// Remove calendar
     public static let removeCalendarTitle = CourseLocalization.tr("Localizable", "COURSE_DATES.REMOVE_CALENDAR_TITLE", fallback: "Remove calendar")
+    /// Content available from %@
+    public static func sessionContentAvailableFrom(_ p1: Any) -> String {
+      return CourseLocalization.tr("Localizable", "COURSE_DATES.SESSION_CONTENT_AVAILABLE_FROM", String(describing: p1), fallback: "Content available from %@")
+    }
+    /// Instructor: %@
+    public static func sessionInstructor(_ p1: Any) -> String {
+      return CourseLocalization.tr("Localizable", "COURSE_DATES.SESSION_INSTRUCTOR", String(describing: p1), fallback: "Instructor: %@")
+    }
+    /// Tools required: %@
+    public static func sessionToolsRequired(_ p1: Any) -> String {
+      return CourseLocalization.tr("Localizable", "COURSE_DATES.SESSION_TOOLS_REQUIRED", String(describing: p1), fallback: "Tools required: %@")
+    }
     /// Settings
     public static let settings = CourseLocalization.tr("Localizable", "COURSE_DATES.SETTINGS", fallback: "Settings")
     /// Sync to calendar

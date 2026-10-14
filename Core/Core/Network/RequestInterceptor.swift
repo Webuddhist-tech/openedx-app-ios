@@ -82,10 +82,17 @@ final public class RequestInterceptor: Alamofire.RequestInterceptor {
                 return completion(.doNotRetry)
             }
             
+            // A request that was already retried with a fresh token and still gets 401 is
+            // refused for another reason (e.g. "User not enrolled." from the dates and schedule
+            // APIs). Refreshing again would loop forever, so fail it instead.
+            guard request.retryCount == 0 else {
+                return completion(.doNotRetryWithError(error))
+            }
+
             guard let token = storage.refreshToken else {
                 return completion(.doNotRetryWithError(error))
             }
-            
+
             mutableState.requestsToRetry.append(completion)
             
             if !mutableState.isRefreshing {

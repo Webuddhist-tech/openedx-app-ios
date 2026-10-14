@@ -22,6 +22,7 @@ enum CourseEndpoint: EndPointType {
     case getCourseDeadlineInfo(courseID: String)
     case courseDatesReset(courseID: String)
     case getCourseProgress(courseID: String)
+    case getCourseSchedule(courseID: String)
 
     var path: String {
         switch self {
@@ -47,6 +48,8 @@ enum CourseEndpoint: EndPointType {
             return "/api/course_experience/v1/reset_course_deadlines"
         case .getCourseProgress(let courseID):
             return "/api/course_home/progress/\(courseID)"
+        case .getCourseSchedule(let courseID):
+            return "/api/course-schedule/v1/\(courseID)/"
         }
     }
 
@@ -73,6 +76,8 @@ enum CourseEndpoint: EndPointType {
         case .courseDatesReset:
             return .post
         case .getCourseProgress:
+            return .get
+        case .getCourseSchedule:
             return .get
         }
     }
@@ -125,6 +130,8 @@ enum CourseEndpoint: EndPointType {
         case let .courseDatesReset(courseID):
             return .requestParameters(parameters: ["course_key": courseID], encoding: JSONEncoding.default)
         case .getCourseProgress:
+            return .requestParameters(encoding: JSONEncoding.default)
+        case .getCourseSchedule:
             return .requestParameters(encoding: JSONEncoding.default)
         }
     }

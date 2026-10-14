@@ -159,6 +159,7 @@
 "COURSE_DATES.TODAY" = "Today";
 "COURSE_DATES.COMPLETED" = "Completed";
 "COURSE_DATES.PAST_DUE" = "Past due";
+"COURSE_DATES.PAST" = "Past";
 "COURSE_DATES.THIS_WEEK" = "This week";
 "COURSE_DATES.NEXT_WEEK" = "Next week";
 "COURSE_DATES.UPCOMING" = "Upcoming";
