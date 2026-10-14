@@ -45,7 +45,8 @@ public enum BlockType: String, Sendable {
     case openassessment
     case peerInstructionTool = "ubcpi"
     case libraryContent = "library_content"
-    
+    case multilingualText = "multilingual_text"
+
     public var image: Image {
         switch self {
         case .problem: return CoreAssets.pen.swiftUIImage.renderingMode(.template)
