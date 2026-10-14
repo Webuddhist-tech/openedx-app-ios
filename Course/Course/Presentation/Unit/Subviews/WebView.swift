@@ -31,11 +31,5 @@ struct WebView: View {
                 Spacer(minLength: 5)
             }
         }
-        .if(roundedBackgroundEnabled) { view in
-            view.roundedBackgroundWeb(
-                strokeColor: Theme.Colors.textInputUnfocusedStroke,
-                maxIpadWidth: .infinity
-            )
-        }
     }
 }
