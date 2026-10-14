@@ -27,7 +27,7 @@ public struct NavigationBar: View {
     
     public init(title: String,
                 titleColor: Color = Theme.Colors.navigationBarTintColor,
-                leftButtonColor: Color = Theme.Colors.accentXColor,
+                leftButtonColor: Color = Theme.Colors.textPrimary,
                 leftButtonAction: (() -> Void)? = nil,
                 rightButtonType: ButtonType? = nil,
                 rightButtonAction: (() -> Void)? = nil,

@@ -166,23 +166,16 @@ public struct CourseContainerView: View {
         ZStack(alignment: .topLeading) {
             if !collapsed {
                 HStack {
-                    ZStack(alignment: .bottom) {
-                        VisualEffectView(effect: UIBlurEffect(style: .regular))
-                            .clipShape(Circle())
-                        BackNavigationButton(
-                            color: Theme.Colors.textPrimary,
-                            action: {
-                                viewModel.router.back()
-                            }
-                        )
-                        .backViewStyle()
-                        .matchedGeometryEffect(id: GeometryName.backButton, in: animationNamespace)
-                        .offset(y: 7)
-                    }
-                    .frame(width: 30, height: 30)
-                    .padding(.vertical, 8)
-                    .padding(.leading, 12)
-                    .padding(.top, idiom == .pad ? 0 : 55)
+                    // The button draws its own glass circle; keep it centred where the old 30pt circle was.
+                    BackNavigationButton(
+                        color: Theme.Colors.textPrimary,
+                        action: {
+                            viewModel.router.back()
+                        }
+                    )
+                    .matchedGeometryEffect(id: GeometryName.backButton, in: animationNamespace)
+                    .padding(.leading, 5)
+                    .padding(.top, idiom == .pad ? 1 : 56)
                     Spacer()
                 }
             }

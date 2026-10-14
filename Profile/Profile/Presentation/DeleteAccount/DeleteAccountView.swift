@@ -151,7 +151,7 @@ public struct DeleteAccountView: View {
                 .navigationTitle(ProfileLocalization.DeleteAccount.title)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
-                        BackNavigationButton(color: Theme.Colors.accentColor) {
+                        BackNavigationButton {
                             viewModel.router.back()
                         }
                         .offset(x: -8, y: -1.5)
