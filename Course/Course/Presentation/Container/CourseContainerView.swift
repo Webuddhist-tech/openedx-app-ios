@@ -166,7 +166,6 @@ public struct CourseContainerView: View {
         ZStack(alignment: .topLeading) {
             if !collapsed {
                 HStack {
-                    // The button draws its own glass circle; keep it centred where the old 30pt circle was.
                     BackNavigationButton(
                         color: Theme.Colors.textPrimary,
                         action: {
@@ -174,7 +173,7 @@ public struct CourseContainerView: View {
                         }
                     )
                     .matchedGeometryEffect(id: GeometryName.backButton, in: animationNamespace)
-                    .padding(.leading, 5)
+                    .backButtonPlacement()
                     .padding(.top, idiom == .pad ? 1 : 56)
                     Spacer()
                 }

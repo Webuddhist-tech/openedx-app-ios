@@ -18,25 +18,35 @@ public struct BackNavigationButtonRepresentable: UIViewRepresentable {
     @ObservedObject var viewModel: BackNavigationButtonViewModel
     var action: (() -> Void)?
     var color: Color
+    var isInToolbar: Bool
 
-    init(action: (() -> Void)? = nil, color: Color, viewModel: BackNavigationButtonViewModel) {
+    init(
+        action: (() -> Void)? = nil,
+        color: Color,
+        isInToolbar: Bool,
+        viewModel: BackNavigationButtonViewModel
+    ) {
         self.viewModel = viewModel
         self.action = action
         self.color = color
+        self.isInToolbar = isInToolbar
     }
     
     public func makeUIView(context: Context) -> UIButton {
         let button = BackButton(type: .custom)
-        button.configuration = Self.configuration(color: color)
+        button.configuration = Self.configuration(color: color, isInToolbar: isInToolbar)
         button.addTarget(context.coordinator, action: #selector(Coordinator.buttonAction), for: .touchUpInside)
         button.accessibilityIdentifier = "back_button"
         return button
     }
 
     /// Matches the system back button: a chevron in a glass circle (blurred material before iOS 26).
-    private static func configuration(color: Color) -> UIButton.Configuration {
+    /// In a toolbar the system draws the glass itself, so the button only draws the chevron.
+    private static func configuration(color: Color, isInToolbar: Bool) -> UIButton.Configuration {
         var configuration: UIButton.Configuration
-        if #available(iOS 26.0, *) {
+        if isInToolbar {
+            configuration = .plain()
+        } else if #available(iOS 26.0, *) {
             configuration = .glass()
         } else {
             configuration = .plain()
@@ -85,18 +95,28 @@ public struct BackNavigationButton: View {
 
     @StateObject var viewModel = BackNavigationButtonViewModel()
     private let color: Color
+    private let isInToolbar: Bool
     private let action: (() -> Void)?
-    
+
+    /// - Parameter isInToolbar: pass `true` inside a navigation bar `ToolbarItem`; leave it
+    ///   off in custom headers and place the button with `backButtonPlacement()`.
     public init(
         color: Color = Theme.Colors.textPrimary,
+        isInToolbar: Bool = false,
         action: (() -> Void)? = nil
     ) {
         self.color = color
+        self.isInToolbar = isInToolbar
         self.action = action
     }
     
     public var body: some View {
-        BackNavigationButtonRepresentable(action: action, color: color, viewModel: viewModel)
+        BackNavigationButtonRepresentable(
+            action: action,
+            color: color,
+            isInToolbar: isInToolbar,
+            viewModel: viewModel
+        )
             .frame(width: Self.size, height: Self.size)
             .accessibilityIdentifier("back_button")
             .accessibilityLabel(CoreLocalization.back)
@@ -106,6 +126,14 @@ public struct BackNavigationButton: View {
         
     }
 }
+public extension View {
+    /// Places a `BackNavigationButton` in a custom header: 16 from the leading edge, with its
+    /// top at the header's top so it is centred on a `titleSettings()` title beside it.
+    func backButtonPlacement() -> some View {
+        padding(.leading, 16)
+    }
+}
+
 #if DEBUG
 struct BackNavigationButton_Previews: PreviewProvider {
     static var previews: some View {

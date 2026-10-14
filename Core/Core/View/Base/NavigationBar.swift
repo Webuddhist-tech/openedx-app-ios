@@ -54,7 +54,7 @@ public struct NavigationBar: View {
             if leftButton {
                 VStack {
                     BackNavigationButton(color: leftButtonColor, action: leftButtonAction)
-                        .backViewStyle()
+                        .backButtonPlacement()
                         .padding(.leading, isHorizontal ? 48 : 0)
                         .accessibilityIdentifier("back_button")
                 }

@@ -31,6 +31,5 @@ struct YouTubeView: View {
             playerStateSubject
         )!
         YouTubeVideoPlayer(viewModel: vm, isOnScreen: isOnScreen)
-            .background(Theme.Colors.background)
     }
 }

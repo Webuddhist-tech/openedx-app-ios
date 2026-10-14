@@ -34,9 +34,8 @@ public struct AllCoursesView: View {
                             router.back()
                         }
                     )
-                    .backViewStyle()
-                    .padding(.top, isHorizontal ? 32 : 16)
-                    .padding(.leading, 7)
+                    .backButtonPlacement()
+                    .padding(.top, isHorizontal ? 16 : 0)
                     
                 }.frame(minWidth: 0,
                         maxWidth: .infinity,

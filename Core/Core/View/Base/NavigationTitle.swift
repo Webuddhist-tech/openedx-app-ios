@@ -35,7 +35,7 @@ public struct NavigationTitle: View {
                         backAction()
                     }
                 )
-                .backViewStyle()
+                .backButtonPlacement()
                 .foregroundColor(Theme.Colors.styledButtonText)
                 .padding(.leading, isHorizontal ? 48 : 0)
                 .accessibilityIdentifier("back_button")

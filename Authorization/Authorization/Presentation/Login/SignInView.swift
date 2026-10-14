@@ -74,9 +74,8 @@ public struct SignInView: View {
                             viewModel.router.back()
                         }
                     )
-                    .backViewStyle()
+                    .backButtonPlacement()
                     .padding(.leading, isHorizontal ? 48 : 0)
-                    .padding(.top, 11)
                     
                 }.frame(maxWidth: .infinity, alignment: .topLeading)
                     .padding(.top, isHorizontal ? 20 : 0)

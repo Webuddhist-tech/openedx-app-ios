@@ -45,7 +45,7 @@ public struct ThemeSelectionView: View {
                                     router.back()
                                 }
                             )
-                            .backViewStyle()
+                            .backButtonPlacement()
                             .padding(.leading, isHorizontal ? 48 : 0)
                             .accessibilityIdentifier("back_button")
                         }

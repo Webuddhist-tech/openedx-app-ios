@@ -252,10 +252,9 @@ public struct ThreadView: View {
                 ToolbarItem(
                     placement: .navigationBarLeading,
                     content: {
-                        BackNavigationButton {
+                        BackNavigationButton(isInToolbar: true) {
                             viewModel.router.back()
                         }
-                        .offset(x: 5)
                     }
                 )
             }

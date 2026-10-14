@@ -53,12 +53,10 @@ public struct DownloadsView: View {
                             viewModel.router.back()
                         }
                     )
-                    .backViewStyle()
-                    .padding(.leading, 8)
-                    
+                    .backButtonPlacement()
                 }
                 .frame(minWidth: 0, maxWidth: .infinity, alignment: .topLeading)
-                .padding(.top, isHorizontal ? 23 : 13)
+                .padding(.top, isHorizontal ? 10 : 0)
                 
             }
             content

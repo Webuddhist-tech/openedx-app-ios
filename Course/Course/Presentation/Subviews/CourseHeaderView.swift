@@ -87,7 +87,7 @@ struct CourseHeaderView: View {
                                 .font(Theme.Fonts.bodyLarge)
                         }
                         .padding(.top, 46)
-                        .padding(.leading, 5)
+                        .backButtonPlacement()
                         courseMenuBar(containerWidth: containerWidth)
                             .matchedGeometryEffect(id: GeometryName.topTabBar, in: animationNamespace)
                             .padding(.bottom, 12)

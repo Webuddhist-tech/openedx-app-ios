@@ -218,10 +218,9 @@ public struct EditProfileView: View {
                 ToolbarItem(
                     placement: .navigationBarLeading,
                     content: {
-                        BackNavigationButton {
+                        BackNavigationButton(isInToolbar: true) {
                             viewModel.backButtonTapped()
                         }
-                        .offset(x: 5, y: 1)
                     }
                 )
                 ToolbarItem(placement: .navigationBarTrailing, content: {
