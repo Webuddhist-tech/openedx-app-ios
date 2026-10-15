@@ -12,12 +12,12 @@ import Foundation
 public enum DownloadsLocalization {
   public enum Downloads {
     /// Manage Download Settings
-    public static let manageDownloadSettings = DownloadsLocalization.tr("Localizable", "DOWNLOADS.MANAGE_DOWNLOAD_SETTINGS", fallback: "Manage Download Settings")
+    public static var manageDownloadSettings: String { return DownloadsLocalization.tr("Localizable", "DOWNLOADS.MANAGE_DOWNLOAD_SETTINGS", fallback: "Manage Download Settings") }
     /// Localizable.strings
     ///   Downloads
     /// 
     ///   Created by Ivan Stepanok on 22.02.2025.
-    public static let title = DownloadsLocalization.tr("Localizable", "DOWNLOADS.TITLE", fallback: "Downloads")
+    public static var title: String { return DownloadsLocalization.tr("Localizable", "DOWNLOADS.TITLE", fallback: "Downloads") }
     public enum Cell {
       /// All %@ downloaded
       public static func allDownloaded(_ p1: Any) -> String {
@@ -28,28 +28,28 @@ public enum DownloadsLocalization {
         return DownloadsLocalization.tr("Localizable", "DOWNLOADS.CELL.AVAILABLE", String(describing: p1), fallback: "%@ available")
       }
       /// Download course
-      public static let downloadCourse = DownloadsLocalization.tr("Localizable", "DOWNLOADS.CELL.DOWNLOAD_COURSE", fallback: "Download course")
+      public static var downloadCourse: String { return DownloadsLocalization.tr("Localizable", "DOWNLOADS.CELL.DOWNLOAD_COURSE", fallback: "Download course") }
       /// %@ downloaded
       public static func downloaded(_ p1: Any) -> String {
         return DownloadsLocalization.tr("Localizable", "DOWNLOADS.CELL.DOWNLOADED", String(describing: p1), fallback: "%@ downloaded")
       }
       /// Downloading
-      public static let downloading = DownloadsLocalization.tr("Localizable", "DOWNLOADS.CELL.DOWNLOADING", fallback: "Downloading")
+      public static var downloading: String { return DownloadsLocalization.tr("Localizable", "DOWNLOADS.CELL.DOWNLOADING", fallback: "Downloading") }
       /// Loading course structure...
-      public static let loadingCourseStructure = DownloadsLocalization.tr("Localizable", "DOWNLOADS.CELL.LOADING_COURSE_STRUCTURE", fallback: "Loading course structure...")
+      public static var loadingCourseStructure: String { return DownloadsLocalization.tr("Localizable", "DOWNLOADS.CELL.LOADING_COURSE_STRUCTURE", fallback: "Loading course structure...") }
     }
     public enum NoCoursesToDownload {
       /// You currently have no courses with downloadable content.
-      public static let description = DownloadsLocalization.tr("Localizable", "DOWNLOADS.NO_COURSES_TO_DOWNLOAD.DESCRIPTION", fallback: "You currently have no courses with downloadable content.")
+      public static var description: String { return DownloadsLocalization.tr("Localizable", "DOWNLOADS.NO_COURSES_TO_DOWNLOAD.DESCRIPTION", fallback: "You currently have no courses with downloadable content.") }
       /// No Courses with Downloadable Content
-      public static let title = DownloadsLocalization.tr("Localizable", "DOWNLOADS.NO_COURSES_TO_DOWNLOAD.TITLE", fallback: "No Courses with Downloadable Content")
+      public static var title: String { return DownloadsLocalization.tr("Localizable", "DOWNLOADS.NO_COURSES_TO_DOWNLOAD.TITLE", fallback: "No Courses with Downloadable Content") }
     }
   }
   public enum MenuOption {
     /// Cancel download
-    public static let cancel = DownloadsLocalization.tr("Localizable", "MENU_OPTION.CANCEL", fallback: "Cancel download")
+    public static var cancel: String { return DownloadsLocalization.tr("Localizable", "MENU_OPTION.CANCEL", fallback: "Cancel download") }
     /// Remove course downloads
-    public static let remove = DownloadsLocalization.tr("Localizable", "MENU_OPTION.REMOVE", fallback: "Remove course downloads")
+    public static var remove: String { return DownloadsLocalization.tr("Localizable", "MENU_OPTION.REMOVE", fallback: "Remove course downloads") }
   }
 }
 // swiftlint:enable explicit_type_interface function_parameter_count identifier_name line_length
