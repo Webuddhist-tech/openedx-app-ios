@@ -142,7 +142,7 @@ enum DatesHeader {
         useRelativeDates: Bool,
         now: Date = Date(),
         calendar: Calendar = .current,
-        locale: Locale = .autoupdatingCurrent
+        locale: Locale = LanguageManager.appLocale
     ) -> String? {
         guard useRelativeDates else { return formattedDate }
         switch status {

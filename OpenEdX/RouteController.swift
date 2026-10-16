@@ -18,7 +18,7 @@ class RouteController: UIViewController {
     enum Reason {
         case appLaunch
         /// Screens are rebuilt in the running app so their text is read in the new language.
-        /// Not reported as a launch, and the learner is returned to the Language screen.
+        /// Not reported as a launch; the Language screen then slides back to Settings.
         case languageChange
     }
 
@@ -122,10 +122,16 @@ class RouteController: UIViewController {
             let controller = UIHostingController(rootView: MainScreenView(viewModel: viewModel))
             navigation.viewControllers = [controller] + (reason == .languageChange ? languageSelectionStack() : [])
         }
-        present(navigation, animated: false)
+        let returnsToSettings = reason == .languageChange && navigation.viewControllers.count > 2
+        present(navigation, animated: false) { [navigation] in
+            // Same screen as before the switch, now in the new language; going back reads as a normal "back".
+            if returnsToSettings {
+                navigation.popViewController(animated: true)
+            }
+        }
     }
 
-    /// Settings and the Language screen, as the learner left them when they switched language.
+    /// Settings and the Language screen, as they were when the learner picked a language.
     private func languageSelectionStack() -> [UIViewController] {
         guard let settingsViewModel = Container.shared.resolve(SettingsViewModel.self),
               let profileRouter = Container.shared.resolve(ProfileRouter.self)

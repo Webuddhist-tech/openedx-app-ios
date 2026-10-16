@@ -10,7 +10,7 @@ import Core
 import Theme
 
 public struct LanguageSelectionView: View {
-    @StateObject private var languageManager = LanguageManager.shared
+    @ObservedObject private var languageManager = LanguageManager.shared
     @Environment(\.dismiss) private var dismiss
     @Environment(\.isHorizontal) private var isHorizontal
     
@@ -35,7 +35,7 @@ public struct LanguageSelectionView: View {
                 VStack(alignment: .center) {
                     ZStack {
                         HStack {
-                            Text("Language")
+                            Text(ProfileLocalization.Settings.languageTitle)
                                 .titleSettings(color: Theme.Colors.loginNavigationText)
                                 .accessibilityIdentifier("language_title")
                         }

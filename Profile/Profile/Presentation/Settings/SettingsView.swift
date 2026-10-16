@@ -153,7 +153,7 @@ public struct SettingsView: View {
                 HStack {
                     Image(systemName: "paintbrush")
                         .foregroundColor(Theme.Colors.textPrimary)
-                    Text("Theme")
+                    Text(ProfileLocalization.Settings.themeTitle)
                         .font(Theme.Fonts.titleMedium)
                     Spacer()
                     Image(systemName: "chevron.right")
@@ -163,7 +163,7 @@ public struct SettingsView: View {
             .accessibilityIdentifier("theme_selector_button")
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Theme")
+        .accessibilityLabel(ProfileLocalization.Settings.themeTitle)
         .cardStyle(
             bgColor: Theme.Colors.textInputUnfocusedBackground,
             strokeColor: .clear
@@ -181,7 +181,7 @@ public struct SettingsView: View {
                 HStack {
                     Image(systemName: "globe")
                         .foregroundColor(Theme.Colors.textPrimary)
-                    Text("Language")
+                    Text(ProfileLocalization.Settings.languageTitle)
                         .font(Theme.Fonts.titleMedium)
                     Spacer()
                     Image(systemName: "chevron.right")
@@ -191,7 +191,7 @@ public struct SettingsView: View {
             .accessibilityIdentifier("language_selector_button")
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Language")
+        .accessibilityLabel(ProfileLocalization.Settings.languageTitle)
         .cardStyle(
             bgColor: Theme.Colors.textInputUnfocusedBackground,
             strokeColor: .clear

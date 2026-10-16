@@ -34,7 +34,7 @@ public struct ThemeSelectionView: View {
                 VStack(alignment: .center) {
                     ZStack {
                         HStack {
-                            Text("Theme")
+                            Text(ProfileLocalization.Settings.themeTitle)
                                 .titleSettings(color: Theme.Colors.loginNavigationText)
                                 .accessibilityIdentifier("theme_title")
                         }

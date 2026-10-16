@@ -219,7 +219,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         guard let window else { return }
         let rebuild = {
             window.rootViewController = RouteController(reason: .languageChange)
-            UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: nil)
         }
         if let presented = window.rootViewController?.presentedViewController {
             presented.dismiss(animated: false, completion: rebuild)

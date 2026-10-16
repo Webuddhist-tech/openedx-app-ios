@@ -252,6 +252,8 @@ public enum ProfileLocalization {
     public static var useRelativeDates: String { return ProfileLocalization.tr("Localizable", "OPTIONS.USE_RELATIVE_DATES", fallback: "Use relative dates") }
   }
   public enum Settings {
+    /// Language
+    public static var languageTitle: String { return ProfileLocalization.tr("Localizable", "SETTINGS.LANGUAGE_TITLE", fallback: "Language") }
     /// Lower data usage
     public static var quality360Description: String { return ProfileLocalization.tr("Localizable", "SETTINGS.QUALITY_360_DESCRIPTION", fallback: "Lower data usage") }
     /// 360p
@@ -270,6 +272,8 @@ public enum ProfileLocalization {
     public static var tapToInstall: String { return ProfileLocalization.tr("Localizable", "SETTINGS.TAP_TO_INSTALL", fallback: "Tap to install required app update") }
     /// Tap to update to version
     public static var tapToUpdate: String { return ProfileLocalization.tr("Localizable", "SETTINGS.TAP_TO_UPDATE", fallback: "Tap to update to version") }
+    /// Theme
+    public static var themeTitle: String { return ProfileLocalization.tr("Localizable", "SETTINGS.THEME_TITLE", fallback: "Theme") }
     /// Up-to-date
     public static var upToDate: String { return ProfileLocalization.tr("Localizable", "SETTINGS.UP_TO_DATE", fallback: "Up-to-date") }
     /// Version:
@@ -311,8 +315,9 @@ public enum ProfileLocalization {
 
 extension ProfileLocalization {
   private static func tr(_ table: String, _ key: String, _ args: CVarArg..., fallback value: String) -> String {
-    let format = BundleToken.bundle.localizedString(forKey: key, value: value, table: table)
-    return String(format: format, locale: Locale.current, arguments: args)
+    let (bundle, locale) = BundleToken.selectedLanguage
+    let format = bundle.localizedString(forKey: key, value: value, table: table)
+    return String(format: format, locale: locale, arguments: args)
   }
 }
 
@@ -325,5 +330,23 @@ private final class BundleToken {
     return Bundle(for: BundleToken.self)
     #endif
   }()
+
+  /// Must match `LanguageManager.storageKey` in Core, which saves the language picked in the app.
+  private static let languageKey = "AppLanguage"
+  private static let lock = NSLock()
+  nonisolated(unsafe) private static var cache: (language: String, bundle: Bundle, locale: Locale)?
+
+  /// Translations and formatting locale for the language picked in the app, falling back to the
+  /// system's choice when none was picked or it isn't translated. Cached until the language changes.
+  static var selectedLanguage: (bundle: Bundle, locale: Locale) {
+    guard let language = UserDefaults.standard.string(forKey: languageKey) else { return (bundle, .current) }
+    lock.lock()
+    defer { lock.unlock() }
+    if let cache, cache.language == language { return (cache.bundle, cache.locale) }
+    let languageBundle = bundle.path(forResource: language, ofType: "lproj").flatMap(Bundle.init(path:)) ?? bundle
+    let entry = (language: language, bundle: languageBundle, locale: Locale(identifier: language))
+    cache = entry
+    return (entry.bundle, entry.locale)
+  }
 }
 // swiftlint:enable convenience_type

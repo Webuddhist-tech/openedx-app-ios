@@ -104,7 +104,7 @@ public struct CourseSessionBlock: Identifiable, Hashable, Sendable {
     // MARK: - Display text
 
     /// "7:00 PM–8:30 PM IST", "7:00 PM IST", or nil when there is no start time.
-    public func timeText(locale: Locale = .current) -> String? {
+    public func timeText(locale: Locale = LanguageManager.appLocale) -> String? {
         guard let start = Self.formatTime(startTime, locale: locale) else { return nil }
         var text = start
         if let end = Self.formatTime(endTime, locale: locale) {
@@ -120,7 +120,7 @@ public struct CourseSessionBlock: Identifiable, Hashable, Sendable {
     /// relative dates are on (the date header then reads "Tomorrow", "Thursday"...), and nil
     /// otherwise because the header already shows the date.
     /// The end date carries the year; the start date does too when it is in another year.
-    public func daysText(locale: Locale = .current) -> String? {
+    public func daysText(locale: Locale = LanguageManager.appLocale) -> String? {
         guard numDays > 1 else {
             return useRelativeDates ? Self.formatDay(startDate, withYear: true, locale: locale) : nil
         }
@@ -132,13 +132,13 @@ public struct CourseSessionBlock: Identifiable, Hashable, Sendable {
 
     /// The days and time joined with " · ", e.g. "15 Oct 2026 · 8:30 am–11:30 am IST",
     /// or nil when neither exists.
-    public func whenText(locale: Locale = .current) -> String? {
+    public func whenText(locale: Locale = LanguageManager.appLocale) -> String? {
         let parts = [daysText(locale: locale), timeText(locale: locale)].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     /// The content release date with year, e.g. "Oct 20, 2026".
-    public func contentAvailableFromText(locale: Locale = .current) -> String? {
+    public func contentAvailableFromText(locale: Locale = LanguageManager.appLocale) -> String? {
         guard let contentAvailableFrom else { return nil }
         return Self.formatDay(contentAvailableFrom, withYear: true, locale: locale)
     }

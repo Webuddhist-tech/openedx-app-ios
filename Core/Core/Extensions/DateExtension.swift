@@ -70,6 +70,7 @@ public extension Date {
         
         if startOfSelfDate > startOfCurrentDate && startOfSelfDate <= sevenDaysAhead {
             let weekdayFormatter = DateFormatter()
+            weekdayFormatter.locale = LanguageManager.appLocale
             weekdayFormatter.dateFormat = "EEEE"
             if startOfSelfDate == calendar.date(byAdding: .day, value: 1, to: startOfCurrentDate) {
                 return dueInString + CoreLocalization.tomorrow
@@ -94,6 +95,7 @@ public extension Date {
         }
         
         let specificFormatter = DateFormatter()
+        specificFormatter.locale = LanguageManager.appLocale
         specificFormatter.dateFormat = isCurrentYear ? "MMMM d" : "MMMM d, yyyy"
         return dueInString + specificFormatter.string(from: self)
     }
@@ -186,7 +188,7 @@ public extension Date {
     func dateToString(style: DateStringStyle, useRelativeDates: Bool, dueIn: Bool = false) -> String {
         let dateFormatter = DateFormatter()
         
-        dateFormatter.locale = .current
+        dateFormatter.locale = LanguageManager.appLocale
         
         if useRelativeDates {
             return timeAgoDisplay(dueIn: dueIn)

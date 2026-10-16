@@ -91,8 +91,9 @@ public enum DiscoveryLocalization {
 
 extension DiscoveryLocalization {
   private static func tr(_ table: String, _ key: String, _ args: CVarArg..., fallback value: String) -> String {
-    let format = BundleToken.bundle.localizedString(forKey: key, value: value, table: table)
-    return String(format: format, locale: Locale.current, arguments: args)
+    let (bundle, locale) = BundleToken.selectedLanguage
+    let format = bundle.localizedString(forKey: key, value: value, table: table)
+    return String(format: format, locale: locale, arguments: args)
   }
 }
 
@@ -105,5 +106,23 @@ private final class BundleToken {
     return Bundle(for: BundleToken.self)
     #endif
   }()
+
+  /// Must match `LanguageManager.storageKey` in Core, which saves the language picked in the app.
+  private static let languageKey = "AppLanguage"
+  private static let lock = NSLock()
+  nonisolated(unsafe) private static var cache: (language: String, bundle: Bundle, locale: Locale)?
+
+  /// Translations and formatting locale for the language picked in the app, falling back to the
+  /// system's choice when none was picked or it isn't translated. Cached until the language changes.
+  static var selectedLanguage: (bundle: Bundle, locale: Locale) {
+    guard let language = UserDefaults.standard.string(forKey: languageKey) else { return (bundle, .current) }
+    lock.lock()
+    defer { lock.unlock() }
+    if let cache, cache.language == language { return (cache.bundle, cache.locale) }
+    let languageBundle = bundle.path(forResource: language, ofType: "lproj").flatMap(Bundle.init(path:)) ?? bundle
+    let entry = (language: language, bundle: languageBundle, locale: Locale(identifier: language))
+    cache = entry
+    return (entry.bundle, entry.locale)
+  }
 }
 // swiftlint:enable convenience_type
