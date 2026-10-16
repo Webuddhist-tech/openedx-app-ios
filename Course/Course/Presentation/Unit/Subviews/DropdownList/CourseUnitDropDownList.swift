@@ -20,9 +20,10 @@ struct CourseUnitDropDownList<Content>: View where Content: View {
     var body: some View {
         VStack {
             ScrollView {
-                VStack(spacing: 0) {
+                VStack(spacing: 2) {
                     content()
                 }
+                .padding(6)
                 .background(
                     GeometryReader { proxy in
                         Color.clear
@@ -34,10 +35,13 @@ struct CourseUnitDropDownList<Content>: View where Content: View {
             }
         }
         .background(Theme.Colors.background)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Theme.Colors.cardViewStroke.opacity(0.6), lineWidth: 1)
+        )
         .frame(height: scrollViewHeight)
-        .shadow(color: Theme.Colors.textSecondary, radius: 4)
-
+        .shadow(color: Theme.Colors.courseCardShadow, radius: 20, x: 0, y: 8)
     }
 }
 
@@ -156,10 +160,8 @@ struct CourseUnitDropDownList_Previews: PreviewProvider {
         
         CourseUnitDropDownList(content: {
             ForEach(verticals, id: \.id) { vertical in
-                let isLast = verticals.last?.id == vertical.id
                 CourseUnitDropDownCell(
                     vertical: vertical,
-                    isLast: isLast,
                     isSelected: false
                 ) {}
             }

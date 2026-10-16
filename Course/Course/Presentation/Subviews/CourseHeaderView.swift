@@ -78,10 +78,7 @@ struct CourseHeaderView: View {
                                     viewModel.router.back()
                                 }
                             )
-                            .backViewStyle()
                             .matchedGeometryEffect(id: GeometryName.backButton, in: animationNamespace)
-                            .frame(width: 30, height: 30)
-                            .offset(y: 10)
                             Text(title)
                                 .lineLimit(1)
                                 .foregroundStyle(Theme.Colors.textPrimary)
@@ -90,7 +87,7 @@ struct CourseHeaderView: View {
                                 .font(Theme.Fonts.bodyLarge)
                         }
                         .padding(.top, 46)
-                        .padding(.leading, 12)
+                        .backButtonPlacement()
                         courseMenuBar(containerWidth: containerWidth)
                             .matchedGeometryEffect(id: GeometryName.topTabBar, in: animationNamespace)
                             .padding(.bottom, 12)

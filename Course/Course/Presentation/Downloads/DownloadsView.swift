@@ -49,17 +49,14 @@ public struct DownloadsView: View {
                 .padding(.top, isHorizontal ? 10 : 0)
                 VStack {
                     BackNavigationButton(
-                        color: Theme.Colors.accentColor,
                         action: {
                             viewModel.router.back()
                         }
                     )
-                    .backViewStyle()
-                    .padding(.leading, 8)
-                    
+                    .backButtonPlacement()
                 }
                 .frame(minWidth: 0, maxWidth: .infinity, alignment: .topLeading)
-                .padding(.top, isHorizontal ? 23 : 13)
+                .padding(.top, isHorizontal ? 10 : 0)
                 
             }
             content

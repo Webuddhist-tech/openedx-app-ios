@@ -12,6 +12,8 @@ struct CourseUnitVerticalsDropdownView: View {
     var verticals: [CourseVertical]
     var currentIndex: Int
     var offsetY: CGFloat
+    /// Height of the header above the content; everything below it is dimmed.
+    var dimmingTopInset: CGFloat = 0
     @Binding var showDropdown: Bool
     var action: (CourseVertical) -> Void
     
@@ -19,6 +21,13 @@ struct CourseUnitVerticalsDropdownView: View {
         ZStack(alignment: .top) {
             Color.clear
                 .contentShape(Rectangle())
+                .overlay(alignment: .top) {
+                    // Dim the content below the header so the list stands out.
+                    Color.black.opacity(0.2)
+                        .padding(.top, dimmingTopInset)
+                        .ignoresSafeArea(edges: .bottom)
+                        .allowsHitTesting(false)
+                }
                 .onTapGesture {
                     showDropdown.toggle()
                 }
@@ -30,11 +39,9 @@ struct CourseUnitVerticalsDropdownView: View {
                 )
             CourseUnitDropDownList(content: {
                 ForEach(verticals, id: \.id) { vertical in
-                    let isLast = verticals.last?.id == vertical.id
                     let isSelected = vertical.id == verticals[currentIndex].id
                     CourseUnitDropDownCell(
                         vertical: vertical,
-                        isLast: isLast,
                         isSelected: isSelected
                     ) {
                         if isSelected {

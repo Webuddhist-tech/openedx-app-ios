@@ -166,23 +166,15 @@ public struct CourseContainerView: View {
         ZStack(alignment: .topLeading) {
             if !collapsed {
                 HStack {
-                    ZStack(alignment: .bottom) {
-                        VisualEffectView(effect: UIBlurEffect(style: .regular))
-                            .clipShape(Circle())
-                        BackNavigationButton(
-                            color: Theme.Colors.textPrimary,
-                            action: {
-                                viewModel.router.back()
-                            }
-                        )
-                        .backViewStyle()
-                        .matchedGeometryEffect(id: GeometryName.backButton, in: animationNamespace)
-                        .offset(y: 7)
-                    }
-                    .frame(width: 30, height: 30)
-                    .padding(.vertical, 8)
-                    .padding(.leading, 12)
-                    .padding(.top, idiom == .pad ? 0 : 55)
+                    BackNavigationButton(
+                        color: Theme.Colors.textPrimary,
+                        action: {
+                            viewModel.router.back()
+                        }
+                    )
+                    .matchedGeometryEffect(id: GeometryName.backButton, in: animationNamespace)
+                    .backButtonPlacement()
+                    .padding(.top, idiom == .pad ? 1 : 56)
                     Spacer()
                 }
             }

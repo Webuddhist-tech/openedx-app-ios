@@ -117,27 +117,6 @@ public extension View {
                 .clipShape(RoundedCorners(tl: 24, tr: 24))
         }
     }
-    
-    func roundedBackgroundWeb(
-        _ color: Color = Theme.Colors.background,
-        strokeColor: Color = Theme.Colors.backgroundStroke,
-        ipadMaxHeight: CGFloat = .infinity,
-        maxIpadWidth: CGFloat = 420
-    ) -> some View {
-        var idiom: UIUserInterfaceIdiom { UIDevice.current.userInterfaceIdiom }
-        return VStack {
-            VStack {}.frame(height: 1)
-            ZStack {
-                self
-                    .frame(maxWidth: maxIpadWidth, maxHeight: idiom == .pad ? ipadMaxHeight : .infinity)
-                    .clipShape(RoundedCorners(tl: 24, tr: 24))
-                RoundedCorners(tl: 24, tr: 24)
-                    .stroke(style: StrokeStyle(lineWidth: 1))
-                    .foregroundColor(strokeColor)
-                    .offset(y: -1)
-            }
-        }
-    }
 }
 
 public extension View {

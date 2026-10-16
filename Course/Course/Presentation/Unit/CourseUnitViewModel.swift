@@ -31,7 +31,7 @@ public enum LessonType: Equatable {
             } else {
                 return .unknown(block.studentUrl)
             }
-        case .html:
+        case .html, .multilingualText:
             return .web(
                 url: block.studentUrl,
                 injections: mandatoryInjections,

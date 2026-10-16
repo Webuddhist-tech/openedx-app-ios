@@ -13,8 +13,6 @@ public struct LanguageSelectionView: View {
     @StateObject private var languageManager = LanguageManager.shared
     @Environment(\.dismiss) private var dismiss
     @Environment(\.isHorizontal) private var isHorizontal
-    @State private var showRestartAlert = false
-    @State private var selectedLanguageCode: String?
     
     private let visibleLanguageCodes = ["en", "bo", "zh-HK", "vi"]
     private let router: ProfileRouter
@@ -48,7 +46,7 @@ public struct LanguageSelectionView: View {
                                     router.back()
                                 }
                             )
-                            .backViewStyle()
+                            .backButtonPlacement()
                             .padding(.leading, isHorizontal ? 48 : 0)
                             .accessibilityIdentifier("back_button")
                         }
@@ -62,9 +60,9 @@ public struct LanguageSelectionView: View {
                             }
                             ForEach(visibleLanguages, id: \.code) { language in
                                 Button(action: {
+                                    // The app rebuilds its screens in the new language right away.
                                     if language.code != languageManager.currentLanguage {
-                                        selectedLanguageCode = language.code
-                                        showRestartAlert = true
+                                        languageManager.setLanguage(language.code)
                                     }
                                 }) {
                                     HStack {
@@ -107,17 +105,6 @@ public struct LanguageSelectionView: View {
                 .ignoresSafeArea()
         )
         .ignoresSafeArea(.all, edges: .horizontal)
-        .alert("Language updated", isPresented: $showRestartAlert) {
-            Button("Close app") {
-                if let languageCode = selectedLanguageCode {
-                    languageManager.setLanguage(languageCode)
-                }
-                selectedLanguageCode = nil
-                exit(0)
-            }
-        } message: {
-            Text("Please close and reopen the app to apply the new language.")
-        }
     }
 }
 

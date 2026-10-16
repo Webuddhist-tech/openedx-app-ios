@@ -2,7 +2,7 @@ strings:
   inputs:
     - Dashboard/en.lproj
   outputs:
-    - templateName: structured-swift5
+    - templatePath: ../Template/strings-structured-swift5.stencil
       params:
         publicAccess: true
         enumName: DashboardLocalization

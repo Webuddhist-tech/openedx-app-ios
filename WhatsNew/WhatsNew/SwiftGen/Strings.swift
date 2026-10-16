@@ -11,16 +11,16 @@ import Foundation
 // swiftlint:disable nesting type_body_length type_name vertical_whitespace_opening_braces
 public enum WhatsNewLocalization {
   /// Done
-  public static let buttonDone = WhatsNewLocalization.tr("Localizable", "BUTTON_DONE", fallback: "Done")
+  public static var buttonDone: String { return WhatsNewLocalization.tr("Localizable", "BUTTON_DONE", fallback: "Done") }
   /// Next
-  public static let buttonNext = WhatsNewLocalization.tr("Localizable", "BUTTON_NEXT", fallback: "Next")
+  public static var buttonNext: String { return WhatsNewLocalization.tr("Localizable", "BUTTON_NEXT", fallback: "Next") }
   /// Previous
-  public static let buttonPrevious = WhatsNewLocalization.tr("Localizable", "BUTTON_PREVIOUS", fallback: "Previous")
+  public static var buttonPrevious: String { return WhatsNewLocalization.tr("Localizable", "BUTTON_PREVIOUS", fallback: "Previous") }
   /// Localizable.strings
   ///   WhatsNew
   /// 
   ///   Created by  Stepanok Ivan on 18.10.2023.
-  public static let title = WhatsNewLocalization.tr("Localizable", "TITLE", fallback: "What's New")
+  public static var title: String { return WhatsNewLocalization.tr("Localizable", "TITLE", fallback: "What's New") }
 }
 // swiftlint:enable explicit_type_interface function_parameter_count identifier_name line_length
 // swiftlint:enable nesting type_body_length type_name vertical_whitespace_opening_braces

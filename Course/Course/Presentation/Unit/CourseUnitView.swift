@@ -40,6 +40,11 @@ public struct CourseUnitView: View {
 
     @State var currentBlock: CourseBlock?
 
+    // Measured at runtime so the layout follows Dynamic Type; initial values match the default text size.
+    @State private var captionHeaderHeight: CGFloat = 62
+    @State private var navigationButtonsHeight: CGFloat = 42
+    private let navigationButtonsBottomPadding: CGFloat = 50
+
     let isDropdownActive: Bool
     
     var sequenceTitle: String {
@@ -91,10 +96,6 @@ public struct CourseUnitView: View {
                     .frame(maxWidth: .infinity)
                     .clipped()
 
-                    // MARK: Progress Dots
-                    if !viewModel.courseUnitProgressEnabled {
-                        LessonProgressView(viewModel: viewModel)
-                    }
                 }
                 // MARK: - Alert
                 if showAlert {
@@ -128,7 +129,8 @@ public struct CourseUnitView: View {
                 CourseUnitVerticalsDropdownView(
                     verticals: viewModel.verticals,
                     currentIndex: viewModel.verticalIndex,
-                    offsetY: isHorizontal ? landscapeTopSpacing : portraitTopSpacing,
+                    offsetY: (isHorizontal ? landscapeTopSpacing : portraitTopSpacing) + captionHeaderExtraHeight,
+                    dimmingTopInset: topInsetHeight,
                     showDropdown: $showDropdown
                 ) { vertical in
                     let data = VerticalData.dataFor(blockId: vertical.childs.first?.id, in: viewModel.chapters)
@@ -151,7 +153,7 @@ public struct CourseUnitView: View {
         .navigationBarBackButtonHidden(true)
         .navigationTitle("")
         .background(
-            Theme.Colors.background
+            Theme.Colors.unitCanvasBackground
                 .ignoresSafeArea()
         )
         .dropdownAnimation(isActive: isDropdownActive, value: showDropdown)
@@ -159,14 +161,45 @@ public struct CourseUnitView: View {
 
     // MARK: - Content
 
+    // The subsection title is drawn as a caption above the unit title. In video navigation
+    // mode the navigation bar shows the current video's name instead.
+    private var showsCaptionHeader: Bool {
+        !viewModel.showVideoNavigation
+    }
+
+    private var captionHeaderTopPadding: CGFloat {
+        isHorizontal ? 10 : 4
+    }
+
+    private var baseTopInsetHeight: CGFloat {
+        isHorizontal ?
+        (viewModel.courseUnitProgressEnabled ? 78 : 75) :
+        (viewModel.courseUnitProgressEnabled ? 68 : 50)
+    }
+
+    private var topInsetHeight: CGFloat {
+        guard showsCaptionHeader else { return baseTopInsetHeight }
+        // Leave a small gap between the measured caption header and the content.
+        return max(baseTopInsetHeight, captionHeaderHeight + 6)
+    }
+
+    private var captionHeaderExtraHeight: CGFloat {
+        topInsetHeight - baseTopInsetHeight
+    }
+
+    // Each page is as tall as the reader but starts below the top inset, so its last
+    // `topInsetHeight` points are off screen; in portrait the card also has to clear
+    // the floating navigation buttons.
+    private var webCardBottomPadding: CGFloat {
+        let navigationClearance = isHorizontal
+        ? 16
+        : navigationButtonsBottomPadding + navigationButtonsHeight + 16
+        return topInsetHeight + navigationClearance
+    }
+
     private func topInset(reader: GeometryProxy) -> some View {
-        VStack { Theme.Colors.background }
-            .frame(
-                width: reader.size.width,
-                height: isHorizontal ?
-                (viewModel.courseUnitProgressEnabled ? 78 : 75) :
-                (viewModel.courseUnitProgressEnabled ? 68 : 50)
-            )
+        VStack { Theme.Colors.unitCanvasBackground }
+            .frame(width: reader.size.width, height: topInsetHeight)
     }
 
     @ViewBuilder
@@ -177,10 +210,12 @@ public struct CourseUnitView: View {
         UnitStack(isVerticalNavigation: !isHorizontalNavigation, alignment: alignment, spacing: 0) {
             let data = Array(viewModel.verticals[viewModel.verticalIndex].childs.enumerated())
             ForEach(data, id: \.offset) {index, block in
+                let lessonType = LessonType.from(block, streamingQuality: viewModel.streamingQuality)
+                let header = blockHeader(block: block, index: index)
                 VStack(spacing: 0) {
-
-                    if isDropdownActive {
-                        videoTitle(block: block, width: reader.size.width)
+                    // Blocks shown in a web card draw the dashes and header inside the card.
+                    if !rendersWebCard(lessonType) && !viewModel.courseUnitProgressEnabled {
+                        standaloneBlockHeader(header, lessonType: lessonType, width: reader.size.width)
                     }
 
                     if viewModel.showVideoNavigation {
@@ -199,7 +234,7 @@ public struct CourseUnitView: View {
                         }
                     }
 
-                    contentView(for: block, index: index, reader: reader)
+                    contentView(for: block, lessonType: lessonType, index: index, reader: reader)
                         .onChange(of: viewModel.allVideosForNavigation) { _ in
                             if let currentBlock {
                                 let index = self.viewModel.allVideosForNavigation.firstIndex(of: currentBlock)
@@ -239,8 +274,13 @@ public struct CourseUnitView: View {
     }
 
     @ViewBuilder
-    private func contentView(for block: CourseBlock, index: Int, reader: GeometryProxy) -> some View {
-        switch LessonType.from(block, streamingQuality: viewModel.streamingQuality) {
+    private func contentView(
+        for block: CourseBlock,
+        lessonType: LessonType,
+        index: Int,
+        reader: GeometryProxy
+    ) -> some View {
+        switch lessonType {
         // MARK: YouTube
         case let .youtube(url, blockID):
             youtubeView(
@@ -395,6 +435,40 @@ public struct CourseUnitView: View {
         }
     }
 
+    /// Mirrors `webView(...)`: web blocks get the card unless they're offline and not downloaded.
+    private func rendersWebCard(_ lessonType: LessonType) -> Bool {
+        guard case let .web(_, _, blockId, _) = lessonType else { return false }
+        return viewModel.connectivity.isInternetAvaliable || webURLs[blockId] != nil
+    }
+
+    @ViewBuilder
+    private func standaloneBlockHeader(_ header: UnitBlockHeader, lessonType: LessonType, width: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            if header.total > 1 {
+                UnitProgressDashes(header: header)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+            }
+            // Discussions show their own title, and in video navigation mode the
+            // navigation bar already shows the current video's name.
+            if case .discussion = lessonType {
+            } else if !viewModel.showVideoNavigation {
+                UnitBlockHeaderView(header: header)
+            }
+        }
+        .frameLimit(width: width)
+    }
+
+    private func blockHeader(block: CourseBlock, index: Int) -> UnitBlockHeader {
+        UnitBlockHeader(
+            title: block.displayName,
+            icon: block.type.unitHeaderIcon,
+            position: index + 1,
+            total: viewModel.verticals[viewModel.verticalIndex].childs.count
+        )
+    }
+
     @ViewBuilder
     private func webView(
         block: CourseBlock,
@@ -413,7 +487,8 @@ public struct CourseUnitView: View {
                         localUrl: nil,
                         injections: injections,
                         blockID: block.id,
-                        roundedBackgroundEnabled: !viewModel.courseUnitProgressEnabled
+                        header: viewModel.courseUnitProgressEnabled ? nil : blockHeader(block: block, index: index),
+                        bottomPadding: webCardBottomPadding
                     )
                 } else if let offlineURL = webURLs[blockId] {
                     WebView(
@@ -421,7 +496,8 @@ public struct CourseUnitView: View {
                         localUrl: offlineURL?.absoluteString,
                         injections: injections,
                         blockID: block.id,
-                        roundedBackgroundEnabled: !viewModel.courseUnitProgressEnabled
+                        header: viewModel.courseUnitProgressEnabled ? nil : blockHeader(block: block, index: index),
+                        bottomPadding: webCardBottomPadding
                     )
                 } else {
                     OfflineContentView(
@@ -506,22 +582,6 @@ public struct CourseUnitView: View {
         return CGPoint(x: x, y: y)
     }
     
-    private func videoTitle(block: CourseBlock, width: CGFloat) -> some View {
-        HStack {
-            if block.type == .video {
-                let title = block.displayName
-                Text(title)
-                    .lineLimit(1)
-                    .font(Theme.Fonts.titleLarge)
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 20)
-                Spacer()
-            }
-        }
-        .frameLimit(width: width)
-    }
-
     // MARK: - Course Navigation
 
     private var courseNavigation: some View {
@@ -537,9 +597,8 @@ public struct CourseUnitView: View {
     private var navigationBar: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .bottom) {
-                let title =  viewModel.showVideoNavigation ? currentBlock?.displayName ?? "" : sequenceTitle
                 NavigationBar(
-                    title: isDropdownActive || viewModel.showVideoNavigation ? title : "",
+                    title: viewModel.showVideoNavigation ? currentBlock?.displayName ?? "" : "",
                     leftButtonAction: {
                         viewModel.router.back()
                         playerStateSubject.send(VideoPlayerState.kill)
@@ -548,20 +607,41 @@ public struct CourseUnitView: View {
                 .padding(.top, isHorizontal ? 10 : 0)
                 .padding(.leading, isHorizontal ? -16 : 0)
 
-                if isDropdownActive {
+                if isDropdownActive && !showsCaptionHeader {
                     CourseUnitDropDownTitle(
                         title: unitTitle,
                         isAvailable: isDropdownAvailable,
                         showDropdown: $showDropdown
                     )
-                    .padding(.bottom, 0)
                     .padding(.horizontal, 48)
                 }
             }
-            .background(!viewModel.showVideoNavigation ? Theme.Colors.background : Theme.Colors.courseCardBackground)
+            .overlay(alignment: .top) {
+                if showsCaptionHeader {
+                    CourseUnitDropDownTitle(
+                        title: unitTitle,
+                        caption: sequenceTitle,
+                        isAvailable: isDropdownActive && isDropdownAvailable,
+                        showDropdown: $showDropdown
+                    )
+                    .padding(.horizontal, 48)
+                    .padding(.top, captionHeaderTopPadding)
+                    .background(
+                        GeometryReader { proxy in
+                            Color.clear.preference(key: CaptionHeaderHeightKey.self, value: proxy.size.height)
+                        }
+                    )
+                }
+            }
+            .background(
+                !viewModel.showVideoNavigation
+                ? Theme.Colors.unitCanvasBackground
+                : Theme.Colors.courseCardBackground
+            )
             .padding(.trailing, isHorizontal ? 215 : 0)
             Spacer()
         }
+        .onPreferenceChange(CaptionHeaderHeightKey.self) { captionHeaderHeight = $0 }
     }
 
     private var courseNavigationView: some View {
@@ -577,13 +657,33 @@ public struct CourseUnitView: View {
                     viewModel: viewModel,
                     playerStateSubject: playerStateSubject
                 )
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(key: NavigationButtonsHeightKey.self, value: proxy.size.height)
+                    }
+                )
                 if isHorizontal {
                     Spacer()
                 }
             }
-            .padding(.bottom, isHorizontal ? 0 : 50)
+            .padding(.bottom, isHorizontal ? 0 : navigationButtonsBottomPadding)
             .padding(.top, isHorizontal ? 12 : 0)
         }
+        .onPreferenceChange(NavigationButtonsHeightKey.self) { navigationButtonsHeight = $0 }
+    }
+}
+
+private struct CaptionHeaderHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct NavigationButtonsHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 

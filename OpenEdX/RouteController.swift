@@ -10,10 +10,30 @@ import SwiftUI
 import Core
 import Authorization
 import WhatsNew
+import Profile
 import Swinject
 
 class RouteController: UIViewController {
-    
+
+    enum Reason {
+        case appLaunch
+        /// Screens are rebuilt in the running app so their text is read in the new language.
+        /// Not reported as a launch, and the learner is returned to the Language screen.
+        case languageChange
+    }
+
+    private let reason: Reason
+
+    init(reason: Reason = .appLaunch) {
+        self.reason = reason
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        self.reason = .appLaunch
+        super.init(coder: coder)
+    }
+
     private lazy var navigation: UINavigationController = {
         diContainer.resolve(UINavigationController.self)!
     }()
@@ -45,7 +65,9 @@ class RouteController: UIViewController {
         }
         
         resetAppSupportDirectoryUserData()
-        coreAnalytics.trackEvent(.launch, biValue: .launch)
+        if reason == .appLaunch {
+            coreAnalytics.trackEvent(.launch, biValue: .launch)
+        }
     }
     
     private func showStartupScreen() {
@@ -98,9 +120,20 @@ class RouteController: UIViewController {
                 postLoginDataDefault
             )!
             let controller = UIHostingController(rootView: MainScreenView(viewModel: viewModel))
-            navigation.viewControllers = [controller]
+            navigation.viewControllers = [controller] + (reason == .languageChange ? languageSelectionStack() : [])
         }
         present(navigation, animated: false)
+    }
+
+    /// Settings and the Language screen, as the learner left them when they switched language.
+    private func languageSelectionStack() -> [UIViewController] {
+        guard let settingsViewModel = Container.shared.resolve(SettingsViewModel.self),
+              let profileRouter = Container.shared.resolve(ProfileRouter.self)
+        else { return [] }
+        return [
+            UIHostingController(rootView: SettingsView(viewModel: settingsViewModel)),
+            UIHostingController(rootView: LanguageSelectionView(router: profileRouter))
+        ]
     }
 
     /**
