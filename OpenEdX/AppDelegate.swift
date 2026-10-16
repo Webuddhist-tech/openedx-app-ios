@@ -99,6 +99,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             object: nil
         )
 
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(languageDidChange),
+            name: .languageChanged,
+            object: nil
+        )
+
         return true
     }
 
@@ -205,6 +212,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     @objc private func themeDidChange() {
         applyTheme()
+    }
+
+    /// Rebuilds every screen so all text is read again in the newly selected language.
+    @objc private func languageDidChange() {
+        guard let window else { return }
+        let rebuild = {
+            window.rootViewController = RouteController(reason: .languageChange)
+            UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: nil)
+        }
+        if let presented = window.rootViewController?.presentedViewController {
+            presented.dismiss(animated: false, completion: rebuild)
+        } else {
+            rebuild()
+        }
     }
     
     private func applyTheme() {
