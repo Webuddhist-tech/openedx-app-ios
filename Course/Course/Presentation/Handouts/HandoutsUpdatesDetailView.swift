@@ -117,7 +117,7 @@ public struct HandoutsUpdatesDetailView: View {
     
     private var webViewHtml: some View {
         // MARK: - Page Body
-        WebViewHtml(html(), injections: [.accessibility, .readability, .mediaPreload])
+        WebViewHtml(html(), injections: [.accessibility, .readability, .mediaPlayback])
             .padding(.top, 8)
             .frame(
                 maxHeight: .infinity,

@@ -73,7 +73,7 @@ public struct WebBrowser: View {
                         .readability,
                         .accessibility,
                         .hideHeaderFooter,
-                        .mediaPreload
+                        .mediaPlayback
                     ] + additionalInjections
                 ),
                 isLoading: $isLoading,

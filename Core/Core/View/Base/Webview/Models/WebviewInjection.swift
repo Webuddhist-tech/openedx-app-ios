@@ -67,27 +67,50 @@ public extension WebviewInjection {
             .webviewInjection()
     }
 
-    /// iOS web views never start loading `preload="none"` audio/video when play is pressed, so the
-    /// first tap stalls at 00:00 and only a second tap plays. Switching the touched player to
-    /// `metadata` just before the tap reaches it avoids that; untouched players download nothing.
-    static var mediaPreload: WebviewInjection {
+    /// Audio/video fixes for course content:
+    /// - iOS web views never start loading `preload="none"` media when play is pressed, so the first
+    ///   tap stalls at 00:00. Audio switches to `metadata` when the page loads (a few KB, and the player
+    ///   can show its length); video, whose metadata can be large, switches only when touched.
+    /// - Only one player plays at a time, e.g. starting another language's audio pauses the first.
+    static var mediaPlayback: WebviewInjection {
         let script = """
         (function() {
-            function prepareMedia(event) {
-                var target = event.target;
-                var media = target && target.closest ? target.closest("audio, video") : null;
-                if (media && media.preload === "none" && media.readyState === 0) {
+            function loadMetadata(media) {
+                if (media.preload === "none" && media.readyState === 0) {
                     media.preload = "metadata";
                 }
             }
+            function loadAudioIn(node) {
+                if (node.nodeType !== 1) { return; }
+                if (node.tagName === "AUDIO") { loadMetadata(node); }
+                node.querySelectorAll("audio").forEach(loadMetadata);
+            }
+            document.addEventListener("DOMContentLoaded", function() {
+                loadAudioIn(document.documentElement);
+                // Only newly added nodes are checked, so pages that update often stay cheap.
+                new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) { mutation.addedNodes.forEach(loadAudioIn); });
+                }).observe(document.documentElement, { childList: true, subtree: true });
+            });
+            function prepareTouchedMedia(event) {
+                var media = event.target && event.target.closest ? event.target.closest("audio, video") : null;
+                if (media) { loadMetadata(media); }
+            }
             // Capture phase runs before the player's own controls; click covers VoiceOver and keyboards.
-            document.addEventListener("touchstart", prepareMedia, { capture: true, passive: true });
-            document.addEventListener("pointerdown", prepareMedia, true);
-            document.addEventListener("click", prepareMedia, true);
+            document.addEventListener("touchstart", prepareTouchedMedia, { capture: true, passive: true });
+            document.addEventListener("pointerdown", prepareTouchedMedia, true);
+            document.addEventListener("click", prepareTouchedMedia, true);
+            // "play" doesn't bubble, so listen in the capture phase.
+            document.addEventListener("play", function(event) {
+                var started = event.target;
+                document.querySelectorAll("audio, video").forEach(function(media) {
+                    if (media !== started && !media.paused) { media.pause(); }
+                });
+            }, true);
         })();
         """
         return WebviewInjection(
-            id: "MediaPreloadInjection",
+            id: "MediaPlaybackInjection",
             script: script,
             messages: nil,
             injectionTime: .atDocumentStart,

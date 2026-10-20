@@ -17,7 +17,7 @@ public enum LessonType: Equatable {
     
     static func from(_ block: CourseBlock, streamingQuality: StreamingQuality) -> Self {
         let mandatoryInjections: [WebviewInjection] = [
-            .colorInversionCss, .ajaxCallback, .readability, .accessibility, .mediaPreload
+            .colorInversionCss, .ajaxCallback, .readability, .accessibility, .mediaPlayback
         ]
         switch block.type {
         case .course, .chapter, .vertical, .sequential:
