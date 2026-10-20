@@ -67,6 +67,32 @@ public extension WebviewInjection {
             .webviewInjection()
     }
 
+    /// iOS web views never start loading `preload="none"` audio/video when play is pressed, so the
+    /// first tap stalls at 00:00 and only a second tap plays. Loading just the metadata avoids it.
+    static var mediaPreload: WebviewInjection {
+        let script = """
+        (function() {
+            function loadMediaMetadata() {
+                document.querySelectorAll('audio[preload="none"], video[preload="none"]').forEach(function(media) {
+                    media.preload = "metadata";
+                });
+            }
+            document.addEventListener("DOMContentLoaded", function() {
+                loadMediaMetadata();
+                new MutationObserver(loadMediaMetadata)
+                    .observe(document.documentElement, { childList: true, subtree: true });
+            });
+        })();
+        """
+        return WebviewInjection(
+            id: "MediaPreloadInjection",
+            script: script,
+            messages: nil,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: false
+        )
+    }
+
     static var hideCertificatePrintBanner: WebviewInjection {
         let script = """
         (function() {
