@@ -68,20 +68,22 @@ public extension WebviewInjection {
     }
 
     /// iOS web views never start loading `preload="none"` audio/video when play is pressed, so the
-    /// first tap stalls at 00:00 and only a second tap plays. Loading just the metadata avoids it.
+    /// first tap stalls at 00:00 and only a second tap plays. Switching the touched player to
+    /// `metadata` just before the tap reaches it avoids that; untouched players download nothing.
     static var mediaPreload: WebviewInjection {
         let script = """
         (function() {
-            function loadMediaMetadata() {
-                document.querySelectorAll('audio[preload="none"], video[preload="none"]').forEach(function(media) {
+            function prepareMedia(event) {
+                var target = event.target;
+                var media = target && target.closest ? target.closest("audio, video") : null;
+                if (media && media.preload === "none" && media.readyState === 0) {
                     media.preload = "metadata";
-                });
+                }
             }
-            document.addEventListener("DOMContentLoaded", function() {
-                loadMediaMetadata();
-                new MutationObserver(loadMediaMetadata)
-                    .observe(document.documentElement, { childList: true, subtree: true });
-            });
+            // Capture phase runs before the player's own controls; click covers VoiceOver and keyboards.
+            document.addEventListener("touchstart", prepareMedia, { capture: true, passive: true });
+            document.addEventListener("pointerdown", prepareMedia, true);
+            document.addEventListener("click", prepareMedia, true);
         })();
         """
         return WebviewInjection(

@@ -72,7 +72,8 @@ public struct WebBrowser: View {
                         .colorInversionCss,
                         .readability,
                         .accessibility,
-                        .hideHeaderFooter
+                        .hideHeaderFooter,
+                        .mediaPreload
                     ] + additionalInjections
                 ),
                 isLoading: $isLoading,
